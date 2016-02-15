@@ -25,7 +25,11 @@ class Cell:
 
 class Board:
   def __init__(self, screen):
-    self.board = [[Cell(i,j) for j in range(Config.CELL_NUM)] for i in range(Config.CELL_NUM)]
+    self.board = [ Cell(i%Config.CELL_NUM,i/Config.CELL_NUM) for i in range(Config.CELL_NUM**2) ]
+    self.at(3,3).state = Cell.WHITE
+    self.at(3,4).state = Cell.BLACK
+    self.at(4,3).state = Cell.BLACK
+    self.at(4,4).state = Cell.WHITE
     self.empty_img  = pygame.image.load('empty.png').convert()
     self.black_img  = pygame.image.load('black.png').convert()
     self.white_img  = pygame.image.load('white.png').convert()
@@ -33,23 +37,29 @@ class Board:
     self.black_rect = self.empty_img.get_rect()
     self.white_rect = self.empty_img.get_rect()
     self.screen     = screen
-    print self.board[0][1].x
+  def at(self, x, y):
+    return self.board[x+y*Config.CELL_NUM]
   def printBoard(self):
-    for i in xrange(0, Config.WPOS+1, Config.CELL_WIDTH):
-      x = i/Config.CELL_WIDTH 
-      for j in xrange(0, Config.WPOS+1, Config.CELL_WIDTH):
-        y = j/Config.CELL_WIDTH
-        if self.board[x][y].state == Cell.EMPTY:
-          self.screen.blit(self.empty_img, self.empty_rect.move(i,j))
-        if self.board[x][y].state == Cell.BLACK:
-          self.screen.blit(self.black_img, self.black_rect.move(i,j))
-        if self.board[x][y].state == Cell.WHITE:
-          self.screen.blit(self.white_img, self.white_rect.move(i,j))
+    for i, cell in enumerate(self.board):
+      xy = (i%Config.CELL_NUM*Config.CELL_WIDTH ,i/Config.CELL_NUM*Config.CELL_WIDTH)
+      if cell.state == Cell.EMPTY:
+        self.screen.blit(self.empty_img, self.empty_rect.move(xy))
+      if cell.state == Cell.BLACK:
+        self.screen.blit(self.black_img, self.black_rect.move(xy))
+      if cell.state == Cell.WHITE:
+        self.screen.blit(self.white_img, self.white_rect.move(xy))
     pygame.display.flip()
+  def takes(self, x, y):
+    return 1
   def evaluate(self):
     return [7, 7]
-  def getPlaceableCells(self):
-    placeable = []
+  def placeable(self, x, y):
+    if self.board.at(x, y) == Cell.EMPTY and self.takes(x, y) > 0:
+      return True
+    else:
+      return False
+  def placeableCells(self):
+    return [cell for cell in self.board if placeable(cell.x, cell.y) ]
 
 def main():
   pygame.init()
@@ -67,7 +77,7 @@ def main():
   while 1:
     if turn%2 == 1:
       xpos, ypos = board.evaluate()
-      board.board[xpos][ypos].state = Cell.WHITE
+      board.at(xpos, ypos).state = Cell.WHITE
       board.printBoard()
       pygame.display.flip()
       turn += 1
@@ -77,7 +87,7 @@ def main():
       if (event.type == MOUSEBUTTONDOWN and turn%2 == 0):
         xpos = int(pygame.mouse.get_pos()[0]/Config.CELL_WIDTH)
         ypos = int(pygame.mouse.get_pos()[1]/Config.CELL_WIDTH)
-        board.board[xpos][ypos].state = Cell.BLACK
+        board.at(xpos, ypos).state = Cell.BLACK
         board.printBoard()
         pygame.display.flip()
         turn += 1
