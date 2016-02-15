@@ -18,3 +18,6 @@ placeableCells() : コマを置くことができるセルのリストを返す<
 ・AIの先攻後攻を決めれるように<br>
 ・Undo機能の実装<br>
 </b>
+
+<b>動作環境：</b>
+Python2.7 + pygame
