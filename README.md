@@ -1,5 +1,8 @@
 # othello
 
+<b>動作環境：</b><br>
+Python2.7 + pygame
+
 <b>Cellクラス:</b><br>
 x, y  : セルの位置 (0~7, 0~7)<br>
 state : セルの状態 (WHITE / BLACK / EMPTY)<br>
@@ -18,6 +21,3 @@ placeableCells() : コマを置くことができるセルのリストを返す<
 ・AIの先攻後攻を決めれるように<br>
 ・Undo機能の実装<br>
 </b>
-
-<b>動作環境：</b>
-Python2.7 + pygame
