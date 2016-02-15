@@ -8,20 +8,21 @@
 import pygame
 from pygame.locals import *
 
+class Cell:
+  BLACK = 0
+  WHITE = 1
+  EMPTY = 2
+  def __init__(self, x, y):
+    self.x = x
+    self.y = y
+    self.state = Cell.EMPTY
+    
 class Config:
   CELL_WIDTH    = 100
   CELL_NUM      = 8
   WINDOW_WIDTH  = CELL_WIDTH * CELL_NUM
   WPOS          = CELL_WIDTH * (CELL_NUM - 1)
-
-class Cell:
-  EMPTY = 0
-  BLACK = 1
-  WHITE = 2
-  def __init__(self, x, y):
-    self.x = x
-    self.y = y
-    self.state = Cell.EMPTY
+  AI_COLOR      = Cell.WHITE
 
 class Board:
   def __init__(self, screen):
@@ -53,6 +54,9 @@ class Board:
     return 1
   def evaluate(self):
     return [7, 7]
+  def put(self):
+    x, y = self.evaluate()
+    self.at(x, y).state = Config.AI_COLOR
   def placeable(self, x, y):
     if self.board.at(x, y) == Cell.EMPTY and self.takes(x, y) > 0:
       return True
@@ -75,19 +79,20 @@ def main():
   board.printBoard()
 
   while 1:
-    if turn%2 == 1:
-      xpos, ypos = board.evaluate()
-      board.at(xpos, ypos).state = Cell.WHITE
+    if turn%2 == Config.AI_COLOR:
+      #xpos, ypos = board.evaluate()
+      #board.at(xpos, ypos).state = Cell.WHITE
+      board.put()
       board.printBoard()
       pygame.display.flip()
       turn += 1
     for event in pygame.event.get():
       if (event.type == KEYDOWN and event.key == K_ESCAPE):
         return  # ESCAPEキーが押されたら終了
-      if (event.type == MOUSEBUTTONDOWN and turn%2 == 0):
+      if (event.type == MOUSEBUTTONDOWN and turn%2 != Config.AI_COLOR):
         xpos = int(pygame.mouse.get_pos()[0]/Config.CELL_WIDTH)
         ypos = int(pygame.mouse.get_pos()[1]/Config.CELL_WIDTH)
-        board.at(xpos, ypos).state = Cell.BLACK
+        board.at(xpos, ypos).state = not Config.AI_COLOR
         board.printBoard()
         pygame.display.flip()
         turn += 1
