@@ -18,6 +18,6 @@ placeableCells() : コマを置くことができるセルのリストを返す<
 <b>TODO :<br>
 ・takes関数の実装<br>
 ・evaluate関数の実装<br>
-・AIの先攻後攻を決めれるように<br>
+<s>・AIの先攻後攻を決めれるように</s><br>
 ・Undo機能の実装<br>
 </b>
