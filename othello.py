@@ -230,10 +230,24 @@ def main():
   board.printBoard()
   while 1:
     if turn%2 == Config.AI_COLOR:
-      ai.put()
-      board.printBoard()
-      pygame.display.flip()
-      turn += 1
+      if ai.canPut():
+        passed = False
+        ai.put()
+        board.printBoard()
+        pygame.display.flip()
+      else:
+        print "AI passed."
+        if passed:  # 二人ともパス->終了
+          break
+        passed = True
+      if you.canPut():
+        passed = False
+        turn += 1
+      else:
+        print "You passed."
+        if passed:  # 二人ともパス->終了
+          break
+        passed = True
     for event in pygame.event.get():
       if (event.type == KEYDOWN and event.key == K_ESCAPE):
         return  # ESCAPEキーが押されたら終了
