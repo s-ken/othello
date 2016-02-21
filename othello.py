@@ -7,6 +7,7 @@
 
 import pygame
 from pygame.locals import *
+import sys
 
 class Cell:
   BLACK = 0
@@ -198,7 +199,7 @@ class AI:
   def __evaluate(self):
     placeableCells = self.__board.placeableCells(self.__color)
     return [placeableCells[0].x, placeableCells[0].y]
-  def put(self):
+  def takeTurn(self):
     x, y = self.__evaluate()
     self.__board.put(x, y, self.__color)
   def canPut(self):
@@ -206,14 +207,21 @@ class AI:
 
 class You:
   def __init__(self, board, color):
-    self.__board = board
-    self.__color = color
-  def put(self, x, y):
-    if not self.__board.placeable(x, y, self.__color):
-      print "ERROR: You cannot put here." 
-      return False
-    self.__board.put(x, y, self.__color)
-    return True
+    self.__board  = board
+    self.__color  = color
+  def takeTurn(self):
+    while 1:
+      for event in pygame.event.get():
+        if (event.type == KEYDOWN and event.key == K_ESCAPE):
+          sys.exit()  # ESCAPEキーが押されたら終了
+        if (event.type == MOUSEBUTTONDOWN):
+          xpos = int(pygame.mouse.get_pos()[0]/Config.CELL_WIDTH)
+          ypos = int(pygame.mouse.get_pos()[1]/Config.CELL_WIDTH)
+          if self.__board.placeable(xpos, ypos, self.__color):
+            self.__board.put(xpos, ypos, self.__color)
+            return
+          else:
+            print "ERROR: You cannot put here." 
   def canPut(self):
     return len(self.__board.placeableCells(self.__color)) > 0
 
@@ -231,33 +239,28 @@ def main():
   while 1:
     if turn%2 == Config.AI_COLOR:
       if ai.canPut():
-        passed = False
-        ai.put()
+        ai.takeTurn()
         board.printBoard()
         pygame.display.flip()
+        passed = False
       else:
         print "AI passed."
         if passed:  # 二人ともパス->終了
           break
         passed = True
+      turn += 1
+    else:
       if you.canPut():
+        you.takeTurn()
+        board.printBoard()
+        pygame.display.flip()
         passed = False
-        turn += 1
       else:
         print "You passed."
         if passed:  # 二人ともパス->終了
           break
         passed = True
-    for event in pygame.event.get():
-      if (event.type == KEYDOWN and event.key == K_ESCAPE):
-        return  # ESCAPEキーが押されたら終了
-      if (event.type == MOUSEBUTTONDOWN and turn%2 != Config.AI_COLOR):
-        xpos = int(pygame.mouse.get_pos()[0]/Config.CELL_WIDTH)
-        ypos = int(pygame.mouse.get_pos()[1]/Config.CELL_WIDTH)
-        if you.put(xpos, ypos):
-          board.printBoard()
-          pygame.display.flip()
-          turn += 1
+      turn += 1
 
 if __name__ == "__main__":
   main()
