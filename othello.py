@@ -16,7 +16,6 @@ class Cell:
     self.x = x
     self.y = y
     self.state = Cell.EMPTY
-  # ADDED
   def __mul__(self, other):
     return self.state * other
     
@@ -26,7 +25,6 @@ class Config:
   WINDOW_WIDTH  = CELL_WIDTH * CELL_NUM
   WPOS          = CELL_WIDTH * (CELL_NUM - 1)
   AI_COLOR      = Cell.WHITE
-  # ADDED
   PATTERNS_NUM    = 3 ** CELL_NUM
   HORI_OFFSET     = 0
   VERT_OFFSET     = CELL_NUM
@@ -47,16 +45,13 @@ class Board:
     self.black_rect = self.empty_img.get_rect()
     self.white_rect = self.empty_img.get_rect()
     self.screen     = screen
-    # ADDED
     self.__index      = Index()
     self.__dummyCell  = Cell(-1, -1)
     self.__lines      = self.__initLines()
-  # MODIFIED
   def at(self, x, y):
     if x < 0 or x >= Config.CELL_NUM or y < 0 or y >= Config.CELL_NUM:
       return self.__dummyCell
     return self.board[x+y*Config.CELL_NUM]
-
   def printBoard(self):
     for i, cell in enumerate(self.board):
       xy = (i%Config.CELL_NUM*Config.CELL_WIDTH ,i/Config.CELL_NUM*Config.CELL_WIDTH)
@@ -67,7 +62,6 @@ class Board:
       if cell.state == Cell.WHITE:
         self.screen.blit(self.white_img, self.white_rect.move(xy))
     pygame.display.flip()
-  # MODIFIED
   def takes(self, x, y, color):
     return self.__takesHori(x, y, color) + self.__takesVert(x, y, color) + self.__takesDiag045(x, y, color) + self.__takesDiag135(x, y, color) 
   def evaluate(self):
@@ -77,21 +71,17 @@ class Board:
     if not self.placeable(x, y, color):
       print "ERROR: You cannot put here." 
       return False
-    self.__reverseHori(x, y, color)
-    self.at(x, y).state = Cell.EMPTY
-    self.__reverseVert(x, y, color)
-    self.at(x, y).state = Cell.EMPTY
     self.__reverseDiag045(x, y, color)
     self.at(x, y).state = Cell.EMPTY
     self.__reverseDiag135(x, y, color)
+    self.at(x, y).state = Cell.EMPTY
+    self.__reverseHori(x, y, color)
+    self.at(x, y).state = Cell.EMPTY
+    self.__reverseVert(x, y, color)
     return True
-
-  # ADDED
   def AIPut(self):
     xpos, ypos = self.evaluate()
     self.put(xpos, ypos, Config.AI_COLOR)
-
-  # MODIFIED
   def placeable(self, x, y, color):
     if self.at(x, y).state == Cell.EMPTY and self.takes(x, y, color) > 0:
       return True
@@ -99,8 +89,6 @@ class Board:
       return False
   def placeableCells(self, color):
     return [cell for cell in self.board if self.placeable(cell.x, cell.y, color) ]
-  
-  # ADDED
   def __initLines(self):
     return self.__getHoriLines() + self.__getVertLines() + self.__getDiag045Lines() + self.__getDiag135Lines()
   def __getHoriLines(self):
@@ -159,8 +147,6 @@ class Board:
     dif = y - x
     if abs(dif) <= Config.CELL_NUM - 3:
       self.__index.reverse(self.__lines[Config.DIAG135_OFFSET + dif + Config.CELL_NUM - 3], y - max(0, dif), color)
-
-# ADDED
 class Index:
   class Element:
     def __init__(self):
@@ -185,8 +171,8 @@ class Index:
       lineCpy[j].state = color
       takesLeft  = Index.__reverseLine(lineCpy[:j][::-1], color)
       takesRight = Index.__reverseLine(lineCpy[j+1:], color)
-      self.__matrix[i][j][color-1].to    = Index.__encode(lineCpy)
-      self.__matrix[i][j][color-1].takes = takesLeft + takesRight
+      self.__matrix[i][j][color].to    = Index.__encode(lineCpy)
+      self.__matrix[i][j][color].takes = takesLeft + takesRight
   @classmethod
   def __decode(cls, code, line):
     for i in range(Config.CELL_NUM)[::-1]:
@@ -209,9 +195,9 @@ class Index:
         return i
     return 0
   def takes(self, line, x, color):
-    return self.__matrix[Index.__encode(line)][x][color-1].takes
+    return self.__matrix[Index.__encode(line)][x][color].takes
   def reverse(self, line, x, color):
-    Index.__decode(self.__matrix[Index.__encode(line)][x][color-1].to, line)
+    Index.__decode(self.__matrix[Index.__encode(line)][x][color].to, line)
 
 def main():
   pygame.init()
@@ -228,11 +214,7 @@ def main():
 
   while 1:
     if turn%2 == Config.AI_COLOR:
-      #xpos, ypos = board.evaluate()
-      #board.at(xpos, ypos).state = Cell.WHITE
-      # MODIFIED
       board.AIPut()
-
       board.printBoard()
       pygame.display.flip()
       turn += 1
@@ -242,7 +224,6 @@ def main():
       if (event.type == MOUSEBUTTONDOWN and turn%2 != Config.AI_COLOR):
         xpos = int(pygame.mouse.get_pos()[0]/Config.CELL_WIDTH)
         ypos = int(pygame.mouse.get_pos()[1]/Config.CELL_WIDTH)
-        # MODIFIED
         if board.put(xpos, ypos, not Config.AI_COLOR):
           board.printBoard()
           pygame.display.flip()
