@@ -7,6 +7,7 @@
 
 import pygame
 from pygame.locals import *
+import sys
 
 class Cell:
   BLACK = 0
@@ -63,14 +64,8 @@ class Board:
         self.screen.blit(self.white_img, self.white_rect.move(xy))
     pygame.display.flip()
   def takes(self, x, y, color):
-    return self.__takesHori(x, y, color) + self.__takesVert(x, y, color) + self.__takesDiag045(x, y, color) + self.__takesDiag135(x, y, color) 
-  def evaluate(self):
-    cells = self.placeableCells(Config.AI_COLOR)
-    return [cells[0].x, cells[0].y]
+    return self.__takesHori(x, y, color) + self.__takesVert(x, y, color) + self.__takesDiag045(x, y, color) + self.__takesDiag135(x, y, color)
   def put(self, x, y, color):
-    if not self.placeable(x, y, color):
-      print "ERROR: You cannot put here." 
-      return False
     self.__reverseDiag045(x, y, color)
     self.at(x, y).state = Cell.EMPTY
     self.__reverseDiag135(x, y, color)
@@ -79,9 +74,6 @@ class Board:
     self.at(x, y).state = Cell.EMPTY
     self.__reverseVert(x, y, color)
     return True
-  def AIPut(self):
-    xpos, ypos = self.evaluate()
-    self.put(xpos, ypos, Config.AI_COLOR)
   def placeable(self, x, y, color):
     if self.at(x, y).state == Cell.EMPTY and self.takes(x, y, color) > 0:
       return True
@@ -147,6 +139,7 @@ class Board:
     dif = y - x
     if abs(dif) <= Config.CELL_NUM - 3:
       self.__index.reverse(self.__lines[Config.DIAG135_OFFSET + dif + Config.CELL_NUM - 3], y - max(0, dif), color)
+
 class Index:
   class Element:
     def __init__(self):
@@ -199,35 +192,75 @@ class Index:
   def reverse(self, line, x, color):
     Index.__decode(self.__matrix[Index.__encode(line)][x][color].to, line)
 
+class AI:
+  def __init__(self, board, color):
+    self.__board = board
+    self.__color = color
+  def __evaluate(self):
+    placeableCells = self.__board.placeableCells(self.__color)
+    return [placeableCells[0].x, placeableCells[0].y]
+  def takeTurn(self):
+    x, y = self.__evaluate()
+    self.__board.put(x, y, self.__color)
+  def canPut(self):
+    return len(self.__board.placeableCells(self.__color)) > 0
+
+class You:
+  def __init__(self, board, color):
+    self.__board  = board
+    self.__color  = color
+  def takeTurn(self):
+    while 1:
+      for event in pygame.event.get():
+        if (event.type == KEYDOWN and event.key == K_ESCAPE):
+          sys.exit()  # ESCAPEキーが押されたら終了
+        if (event.type == MOUSEBUTTONDOWN):
+          xpos = int(pygame.mouse.get_pos()[0]/Config.CELL_WIDTH)
+          ypos = int(pygame.mouse.get_pos()[1]/Config.CELL_WIDTH)
+          if self.__board.placeable(xpos, ypos, self.__color):
+            self.__board.put(xpos, ypos, self.__color)
+            return
+          else:
+            print "ERROR: You cannot put here." 
+  def canPut(self):
+    return len(self.__board.placeableCells(self.__color)) > 0
+
 def main():
   pygame.init()
   screen = pygame.display.set_mode( (Config.WINDOW_WIDTH, Config.WINDOW_WIDTH) )
   screen.fill((0,0,0))
   pygame.display.set_caption('Othello')
-
   board = Board(screen)
-
+  ai = AI(board, Config.AI_COLOR)
+  you = You(board, not Config.AI_COLOR)
   pygame.mouse.set_visible(True)
   turn = 0
-
   board.printBoard()
-
   while 1:
     if turn%2 == Config.AI_COLOR:
-      board.AIPut()
-      board.printBoard()
-      pygame.display.flip()
+      if ai.canPut():
+        ai.takeTurn()
+        board.printBoard()
+        pygame.display.flip()
+        passed = False
+      else:
+        print "AI passed."
+        if passed:  # 二人ともパス->終了
+          break
+        passed = True
       turn += 1
-    for event in pygame.event.get():
-      if (event.type == KEYDOWN and event.key == K_ESCAPE):
-        return  # ESCAPEキーが押されたら終了
-      if (event.type == MOUSEBUTTONDOWN and turn%2 != Config.AI_COLOR):
-        xpos = int(pygame.mouse.get_pos()[0]/Config.CELL_WIDTH)
-        ypos = int(pygame.mouse.get_pos()[1]/Config.CELL_WIDTH)
-        if board.put(xpos, ypos, not Config.AI_COLOR):
-          board.printBoard()
-          pygame.display.flip()
-          turn += 1
+    else:
+      if you.canPut():
+        you.takeTurn()
+        board.printBoard()
+        pygame.display.flip()
+        passed = False
+      else:
+        print "You passed."
+        if passed:  # 二人ともパス->終了
+          break
+        passed = True
+      turn += 1
 
 if __name__ == "__main__":
   main()
