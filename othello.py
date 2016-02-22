@@ -66,13 +66,13 @@ class Board:
   def takes(self, x, y, color):
     return self.__takesHori(x, y, color) + self.__takesVert(x, y, color) + self.__takesDiag045(x, y, color) + self.__takesDiag135(x, y, color)
   def put(self, x, y, color):
-    self.__reverseDiag045(x, y, color)
+    self.__flipDiag045(x, y, color)
     self.at(x, y).state = Cell.EMPTY
-    self.__reverseDiag135(x, y, color)
+    self.__flipDiag135(x, y, color)
     self.at(x, y).state = Cell.EMPTY
-    self.__reverseHori(x, y, color)
+    self.__flipHori(x, y, color)
     self.at(x, y).state = Cell.EMPTY
-    self.__reverseVert(x, y, color)
+    self.__flipVert(x, y, color)
     return True
   def placeable(self, x, y, color):
     if self.at(x, y).state == Cell.EMPTY and self.takes(x, y, color) > 0:
@@ -127,18 +127,18 @@ class Board:
     if abs(dif) > Config.CELL_NUM - 3:
       return 0
     return self.__index.takes(self.__lines[Config.DIAG135_OFFSET + dif + Config.CELL_NUM - 3], y - max(0, dif), color)
-  def __reverseHori(self, x, y, color):
-    self.__index.reverse(self.__lines[Config.HORI_OFFSET + y], x, color)
-  def __reverseVert(self, x, y, color):
-    self.__index.reverse(self.__lines[Config.VERT_OFFSET + x], y, color)
-  def __reverseDiag045(self, x, y, color):
+  def __flipHori(self, x, y, color):
+    self.__index.flip(self.__lines[Config.HORI_OFFSET + y], x, color)
+  def __flipVert(self, x, y, color):
+    self.__index.flip(self.__lines[Config.VERT_OFFSET + x], y, color)
+  def __flipDiag045(self, x, y, color):
     sum = x + y
     if sum >= 2 and sum <= Config.CELL_NUM * 2 - 4:
-      self.__index.reverse(self.__lines[Config.DIAG045_OFFSET + sum - 2], y - max(0, sum - Config.CELL_NUM + 1), color)
-  def __reverseDiag135(self, x, y, color):
+      self.__index.flip(self.__lines[Config.DIAG045_OFFSET + sum - 2], y - max(0, sum - Config.CELL_NUM + 1), color)
+  def __flipDiag135(self, x, y, color):
     dif = y - x
     if abs(dif) <= Config.CELL_NUM - 3:
-      self.__index.reverse(self.__lines[Config.DIAG135_OFFSET + dif + Config.CELL_NUM - 3], y - max(0, dif), color)
+      self.__index.flip(self.__lines[Config.DIAG135_OFFSET + dif + Config.CELL_NUM - 3], y - max(0, dif), color)
 
 class Index:
   class Element:
@@ -162,8 +162,8 @@ class Index:
       for (cellCpy, cell) in zip(lineCpy, line):
         cellCpy.state = cell.state
       lineCpy[j].state = color
-      takesLeft  = Index.__reverseLine(lineCpy[:j][::-1], color)
-      takesRight = Index.__reverseLine(lineCpy[j+1:], color)
+      takesLeft  = Index.__flipLine(lineCpy[:j][::-1], color)
+      takesRight = Index.__flipLine(lineCpy[j+1:], color)
       self.__matrix[i][j][color].to    = Index.__encode(lineCpy)
       self.__matrix[i][j][color].takes = takesLeft + takesRight
   @classmethod
@@ -178,7 +178,7 @@ class Index:
       res += c * 3 ** i
     return res
   @classmethod
-  def __reverseLine(cls, line, color):
+  def __flipLine(cls, line, color):
     for i, c in enumerate(line):
       if c.state == Cell.EMPTY:
         return 0
@@ -189,7 +189,7 @@ class Index:
     return 0
   def takes(self, line, x, color):
     return self.__matrix[Index.__encode(line)][x][color].takes
-  def reverse(self, line, x, color):
+  def flip(self, line, x, color):
     Index.__decode(self.__matrix[Index.__encode(line)][x][color].to, line)
 
 class AI:
