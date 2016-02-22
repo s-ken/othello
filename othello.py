@@ -88,6 +88,11 @@ class Board:
   def loadStates(self):
     for i, cell in enumerate(self.board):
       cell.state = self.__prevStates[i]
+  def printResult(self):
+    counter = [0, 0]
+    for cell in self.board:
+      counter[cell.state] += 1
+    print "BLACK:", counter[Cell.BLACK], " WHITE:", counter[Cell.WHITE]
   def __initLines(self):
     return self.__getHoriLines() + self.__getVertLines() + self.__getDiag045Lines() + self.__getDiag135Lines()
   def __getHoriLines(self):
@@ -267,9 +272,9 @@ class Game:
         if self.__passedFlag:  # 二人ともパス->終了
           return
         self.__passedFlag = True
-      self.__turn += 1  
+      self.__turn += 1
   def output(self):
-    print "RESULT"
+    self.__board.printResult()
   def __printBoard(self):
     self.__board.printBoard()
     pygame.display.flip()

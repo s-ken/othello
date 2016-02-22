@@ -36,5 +36,5 @@ output() : 結果を出力する<br>
 <s>・takes関数の実装</s><br>
 ・evaluate関数の実装<br>
 <s>・AIの先攻後攻を決めれるように</s><br>
-・Undo機能の実装<br>
+<s>・Undo機能の実装</s> (BackSpaceでUndo)<br>
 </b>
