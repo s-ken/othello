@@ -231,32 +231,20 @@ def main():
   screen.fill((0,0,0))
   pygame.display.set_caption('Othello')
   board = Board(screen)
-  ai = AI(board, Config.AI_COLOR)
-  you = You(board, not Config.AI_COLOR)
+  player = [0,0]
+  player[Config.AI_COLOR]      = AI(board, Config.AI_COLOR)
+  player[not Config.AI_COLOR]  = You(board, not Config.AI_COLOR)
   pygame.mouse.set_visible(True)
   turn = 0
   board.printBoard()
   while 1:
-    if turn%2 == Config.AI_COLOR:
-      if ai.canPut():
-        ai.takeTurn()
+      if player[turn%2].canPut():
+        player[turn%2].takeTurn()
         board.printBoard()
         pygame.display.flip()
         passed = False
       else:
-        print "AI passed."
-        if passed:  # 二人ともパス->終了
-          break
-        passed = True
-      turn += 1
-    else:
-      if you.canPut():
-        you.takeTurn()
-        board.printBoard()
-        pygame.display.flip()
-        passed = False
-      else:
-        print "You passed."
+        print "passed."
         if passed:  # 二人ともパス->終了
           break
         passed = True
