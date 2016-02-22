@@ -49,6 +49,7 @@ class Board:
     self.__index      = Index()
     self.__dummyCell  = Cell(-1, -1)
     self.__lines      = self.__initLines()
+    self.__prevStates = [Cell.EMPTY] * Config.CELL_NUM ** 2
   def at(self, x, y):
     if x < 0 or x >= Config.CELL_NUM or y < 0 or y >= Config.CELL_NUM:
       return self.__dummyCell
@@ -81,6 +82,12 @@ class Board:
       return False
   def placeableCells(self, color):
     return [cell for cell in self.board if self.placeable(cell.x, cell.y, color) ]
+  def storeStates(self):
+    for i, cell in enumerate(self.board):
+      self.__prevStates[i] = cell.state
+  def loadStates(self):
+    for i, cell in enumerate(self.board):
+      cell.state = self.__prevStates[i]
   def __initLines(self):
     return self.__getHoriLines() + self.__getVertLines() + self.__getDiag045Lines() + self.__getDiag135Lines()
   def __getHoriLines(self):
@@ -214,10 +221,13 @@ class You:
       for event in pygame.event.get():
         if (event.type == KEYDOWN and event.key == K_ESCAPE):
           sys.exit()  # ESCAPEキーが押されたら終了
+        if (event.type == KEYDOWN and event.key == K_BACKSPACE):
+          raise UndoRequest()
         if (event.type == MOUSEBUTTONDOWN):
           xpos = int(pygame.mouse.get_pos()[0]/Config.CELL_WIDTH)
           ypos = int(pygame.mouse.get_pos()[1]/Config.CELL_WIDTH)
           if self.__board.placeable(xpos, ypos, self.__color):
+            self.__board.storeStates()
             self.__board.put(xpos, ypos, self.__color)
             return
           else:
@@ -225,14 +235,17 @@ class You:
   def canPut(self):
     return len(self.__board.placeableCells(self.__color)) > 0
 
+class UndoRequest(Exception):
+  def __init__(self): 0
+
 class Game:
   def __init__(self):
     pygame.init()
-    self.__screen = pygame.display.set_mode( (Config.WINDOW_WIDTH, Config.WINDOW_WIDTH) )
-    self.__board  = Board(self.__screen)
-    self.__turn   = Cell.BLACK
-    self.__passed = False
-    self.__player = [0,0]
+    self.__screen     = pygame.display.set_mode( (Config.WINDOW_WIDTH, Config.WINDOW_WIDTH) )
+    self.__board      = Board(self.__screen)
+    self.__turn       = Cell.BLACK
+    self.__passedFlag = False
+    self.__player     = [0,0]
     self.__player[Config.AI_COLOR]      = AI(self.__board, Config.AI_COLOR)
     self.__player[not Config.AI_COLOR]  = You(self.__board, not Config.AI_COLOR)
     self.__screen.fill((0,0,0))
@@ -241,19 +254,27 @@ class Game:
     self.__board.printBoard()
   def run(self):
     while 1:
+      self.__printBoard()
       if self.__player[self.__turn%2].canPut():
-        self.__player[self.__turn%2].takeTurn()
-        self.__board.printBoard()
-        pygame.display.flip()
-        self.__passed = False
+        try:
+          self.__player[self.__turn%2].takeTurn()
+          self.__passedFlag = False
+        except UndoRequest:
+          self.__undo()
+          continue
       else:
         print "passed."
-        if self.__passed:  # 二人ともパス->終了
-          break
-        self.__passed = True
+        if self.__passedFlag:  # 二人ともパス->終了
+          return
+        self.__passedFlag = True
       self.__turn += 1  
   def output(self):
     print "RESULT"
+  def __printBoard(self):
+    self.__board.printBoard()
+    pygame.display.flip()
+  def __undo(self):
+    self.__board.loadStates()
 
 def main():
   game = Game()
