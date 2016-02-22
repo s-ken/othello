@@ -28,6 +28,10 @@ canPut() : コマを置ける場所があるかどうかを返す<br>
 takeTurn() : クリックされた位置にコマを置く<br>
 canPut() : コマを置ける場所があるかどうかを返す<br>
 
+<b>Gameクラス</b><br>
+run() : ゲームの進行<br>
+output() : 結果を出力する<br>
+
 <b>TODO :<br>
 <s>・takes関数の実装</s><br>
 ・evaluate関数の実装<br>

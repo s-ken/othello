@@ -225,30 +225,40 @@ class You:
   def canPut(self):
     return len(self.__board.placeableCells(self.__color)) > 0
 
-def main():
-  pygame.init()
-  screen = pygame.display.set_mode( (Config.WINDOW_WIDTH, Config.WINDOW_WIDTH) )
-  screen.fill((0,0,0))
-  pygame.display.set_caption('Othello')
-  board = Board(screen)
-  player = [0,0]
-  player[Config.AI_COLOR]      = AI(board, Config.AI_COLOR)
-  player[not Config.AI_COLOR]  = You(board, not Config.AI_COLOR)
-  pygame.mouse.set_visible(True)
-  turn = 0
-  board.printBoard()
-  while 1:
-      if player[turn%2].canPut():
-        player[turn%2].takeTurn()
-        board.printBoard()
+class Game:
+  def __init__(self):
+    pygame.init()
+    self.__screen = pygame.display.set_mode( (Config.WINDOW_WIDTH, Config.WINDOW_WIDTH) )
+    self.__board  = Board(self.__screen)
+    self.__turn   = Cell.BLACK
+    self.__passed = False
+    self.__player = [0,0]
+    self.__player[Config.AI_COLOR]      = AI(self.__board, Config.AI_COLOR)
+    self.__player[not Config.AI_COLOR]  = You(self.__board, not Config.AI_COLOR)
+    self.__screen.fill((0,0,0))
+    pygame.display.set_caption('Othello')
+    pygame.mouse.set_visible(True)
+    self.__board.printBoard()
+  def run(self):
+    while 1:
+      if self.__player[self.__turn%2].canPut():
+        self.__player[self.__turn%2].takeTurn()
+        self.__board.printBoard()
         pygame.display.flip()
-        passed = False
+        self.__passed = False
       else:
         print "passed."
-        if passed:  # 二人ともパス->終了
+        if self.__passed:  # 二人ともパス->終了
           break
-        passed = True
-      turn += 1
+        self.__passed = True
+      self.__turn += 1  
+  def output(self):
+    print "RESULT"
+
+def main():
+  game = Game()
+  game.run()
+  game.output()
 
 if __name__ == "__main__":
   main()
