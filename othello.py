@@ -91,7 +91,8 @@ class Board:
   def printResult(self):
     counter = [0, 0]
     for cell in self.board:
-      counter[cell.state] += 1
+      if cell.state != Cell.EMPTY:
+        counter[cell.state] += 1
     print "BLACK:", counter[Cell.BLACK], " WHITE:", counter[Cell.WHITE]
   def __initLines(self):
     return self.__getHoriLines() + self.__getVertLines() + self.__getDiag045Lines() + self.__getDiag135Lines()
@@ -257,7 +258,7 @@ class Game:
     self.__board      = Board(self.__screen)
     self.__turn       = Cell.BLACK
     self.__passedFlag = False
-    self.__player     = [0,0]
+    self.__player     = [None] * 2
     self.__player[Config.AI_COLOR]      = AI(self.__board, Config.AI_COLOR)
     self.__player[not Config.AI_COLOR]  = You(self.__board, not Config.AI_COLOR)
     self.__screen.fill((0,0,0))

@@ -11,13 +11,13 @@ state : セルの状態 (WHITE / BLACK / EMPTY)<br>
 board :　オセロの盤面の実体 (Cellが8*8=64個の1次元リスト)<br>
 at(x, y) : 盤面の2次元平面の位置(x, y)に対応するCellを返す<br>
 takes(x, y, color) : (x, y)の位置にcolor色のコマを置いた場合に取れる相手のコマの数を返す<br>
-put(x, y, color) : (x, y)の位置にcolor色のコマを置く<br>
+put(x, y, color) : (x, y)の位置にcolor色のコマを置く->boardの各Cellのstateが書き換わる<br>
 placeable(x, y) : 位置(x, y)にコマを置けるか判定．TrueかFalseを返す<br>
 placeableCells() : コマを置くことができるセルのリストを返す<br>
 
 <b>Indexクラス</b><br>
 takes(line, x, color) : Cell列であるlineに対してx番目の位置にcolor色のコマを置いた際に取れる相手のコマの数を返す<br>
-reverse(line, x, color) : Cell列であるlineに対してx番目の位置にcolor色のコマを置いた際に裏返されるべきコマを裏返す(line内のCell.stateを直接書き換える)<br>
+flip(line, x, color) : Cell列であるlineに対してx番目の位置にcolor色のコマを置いた際に裏返されるべきコマを裏返す(line内のCell.stateを直接書き換える)<br>
 
 <b>AIクラス</b><br>
 takeTurn() : evaluate()を実行してコマを置く<br>
