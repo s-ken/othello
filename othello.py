@@ -204,23 +204,32 @@ class Index:
   def flip(self, line, x, color):
     Index.__decode(self.__matrix[Index.__encode(line)][x][color].to, line)
 
-class AI:
+class Player(object):
   def __init__(self, board, color):
-    self.__board = board
-    self.__color = color
+    self.board = board
+    self.color = color
+  def takeTurn(self):
+    raise NotImplementedError
+  def canPut(self):
+    return len(self.board.placeableCells(self.color)) > 0
+
+class AI(Player):
+  def __init__(self, board, color):
+    super(AI, self).__init__(board, color)
+  def __str__(self):
+    return "AI"
   def __evaluate(self):
-    placeableCells = self.__board.placeableCells(self.__color)
+    placeableCells = self.board.placeableCells(self.color)
     return [placeableCells[0].x, placeableCells[0].y]
   def takeTurn(self):
     x, y = self.__evaluate()
-    self.__board.put(x, y, self.__color)
-  def canPut(self):
-    return len(self.__board.placeableCells(self.__color)) > 0
-
-class You:
+    self.board.put(x, y, self.color)
+  
+class You(Player):
   def __init__(self, board, color):
-    self.__board  = board
-    self.__color  = color
+    super(You, self).__init__(board, color)
+  def __str__(self):
+    return "You"
   def takeTurn(self):
     while 1:
       for event in pygame.event.get():
@@ -231,14 +240,12 @@ class You:
         if (event.type == MOUSEBUTTONDOWN):
           xpos = int(pygame.mouse.get_pos()[0]/Config.CELL_WIDTH)
           ypos = int(pygame.mouse.get_pos()[1]/Config.CELL_WIDTH)
-          if self.__board.placeable(xpos, ypos, self.__color):
-            self.__board.storeStates()
-            self.__board.put(xpos, ypos, self.__color)
+          if self.board.placeable(xpos, ypos, self.color):
+            self.board.storeStates()
+            self.board.put(xpos, ypos, self.color)
             return
           else:
             print "ERROR: You cannot put here." 
-  def canPut(self):
-    return len(self.__board.placeableCells(self.__color)) > 0
 
 class UndoRequest(Exception):
   def __init__(self): 0
@@ -268,7 +275,7 @@ class Game:
           self.__undo()
           continue
       else:
-        print "passed."
+        print self.__player[self.__turn%2], " passed."
         if self.__passedFlag:  # 二人ともパス->終了
           return
         self.__passedFlag = True
