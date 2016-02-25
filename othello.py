@@ -8,6 +8,7 @@
 import pygame
 from pygame.locals import *
 import sys
+import index
 
 class Cell:
   BLACK = 0
@@ -17,8 +18,9 @@ class Cell:
     self.x = x
     self.y = y
     self.state = Cell.EMPTY
-  def __mul__(self, other):
+  def __mul__(self, other): # Index.__encode()用
     return self.state * other
+
     
 class Config:
   CELL_WIDTH    = 100
@@ -31,6 +33,7 @@ class Config:
   VERT_OFFSET     = CELL_NUM
   DIAG045_OFFSET  = VERT_OFFSET + CELL_NUM
   DIAG135_OFFSET  = DIAG045_OFFSET + CELL_NUM * 2 - 5
+
 
 class Board:
   def __init__(self, screen):
@@ -46,14 +49,17 @@ class Board:
     self.black_rect = self.empty_img.get_rect()
     self.white_rect = self.empty_img.get_rect()
     self.screen     = screen
-    self.__index      = Index()
-    self.__dummyCell  = Cell(-1, -1)
+    self.__index      = index.Index()
+    self.__dummyCell  = Cell(-1, -1)  # at()での範囲外のマスへの参照用
     self.__lines      = self.__initLines()
     self.__prevStates = [Cell.EMPTY] * Config.CELL_NUM ** 2
+
+  # <詳細> 範囲外への参照にはdummyCellを返す
   def at(self, x, y):
     if x < 0 or x >= Config.CELL_NUM or y < 0 or y >= Config.CELL_NUM:
       return self.__dummyCell
     return self.board[x+y*Config.CELL_NUM]
+
   def printBoard(self):
     for i, cell in enumerate(self.board):
       xy = (i%Config.CELL_NUM*Config.CELL_WIDTH ,i/Config.CELL_NUM*Config.CELL_WIDTH)
@@ -64,17 +70,25 @@ class Board:
       if cell.state == Cell.WHITE:
         self.screen.blit(self.white_img, self.white_rect.move(xy))
     pygame.display.flip()
+
+  # <概要> 位置(x,y)にcolor色の駒を置いて得られる相手の駒数を返す
+  # <引数> x:int(0~7), y:int(0~7), color:int(0~2)
+  # <返値> int(0~6)
   def takes(self, x, y, color):
     return self.__takesHori(x, y, color) + self.__takesVert(x, y, color) + self.__takesDiag045(x, y, color) + self.__takesDiag135(x, y, color)
+  
+  # <概要> 位置(x,y)にcolor色の駒を置いて相手の駒を裏返す
+  # <引数> x:int(0~7), y:int(0~7), color:int(0~2)
   def put(self, x, y, color):
-    self.__flipDiag045(x, y, color)
+    self.__flipDiag045(x, y, color) # 斜め45°方向を裏返す
     self.at(x, y).state = Cell.EMPTY
-    self.__flipDiag135(x, y, color)
+    self.__flipDiag135(x, y, color) # 斜め135°方向を裏返す
     self.at(x, y).state = Cell.EMPTY
-    self.__flipHori(x, y, color)
+    self.__flipHori(x, y, color)  # 水平方向を裏返す
     self.at(x, y).state = Cell.EMPTY
-    self.__flipVert(x, y, color)
+    self.__flipVert(x, y, color)  # 垂直方向を裏返す
     return True
+
   def placeable(self, x, y, color):
     if self.at(x, y).state == Cell.EMPTY and self.takes(x, y, color) > 0:
       return True
@@ -94,18 +108,32 @@ class Board:
       if cell.state != Cell.EMPTY:
         counter[cell.state] += 1
     print "BLACK:", counter[Cell.BLACK], " WHITE:", counter[Cell.WHITE]
+
+  # <概要> メンバ変数__linesを初期化する
   def __initLines(self):
     return self.__getHoriLines() + self.__getVertLines() + self.__getDiag045Lines() + self.__getDiag135Lines()
+  
+  # <概要> 水平方向のCell型ListからなるListを返す
+  # <返値> (Cell型List[8])型List[8]
   def __getHoriLines(self):
     res = [[] for i in range(Config.CELL_NUM)]
     for y in range(Config.CELL_NUM):
       res[y] = self.board[y*Config.CELL_NUM:(y+1)*Config.CELL_NUM]
     return res
+
+  # <概要> 垂直方向のCell型ListからなるListを返す
+  # <返値> (Cell型List[8])型List[8]
   def __getVertLines(self):
     res = [[] for i in range(Config.CELL_NUM)]
     for x in range(Config.CELL_NUM):
       res[x] = self.board[x :: Config.CELL_NUM]
     return res
+
+  # <概要> 斜め45°方向のCell型ListからなるListを返す
+  # <返値> (Cell型List)型List[11]
+  # <詳細> 返値の各要素のCell型Listの長さは,順に
+  #        3,4,5,6,7,8,7,6,5,4,3 である
+  #        長さ1,2のものは駒が裏返ることがないので省く
   def __getDiag045Lines(self):
     res = [[] for i in range(Config.CELL_NUM * 2 - 5)]
     for i in range(Config.CELL_NUM * 2 - 5):
@@ -116,6 +144,9 @@ class Board:
         x -= 1
         y += 1
     return res
+
+  # <概要> 斜め135°方向のCell型ListからなるListを返す
+  # <返値> (Cell型List)型List[11]
   def __getDiag135Lines(self):
     res = [[] for i in range(Config.CELL_NUM * 2 - 5)]
     for i in range(Config.CELL_NUM * 2 - 5):
@@ -126,6 +157,11 @@ class Board:
         x += 1
         y += 1
     return res
+
+  # <概要> 位置(x,y)にcolor色の駒を置いたときに得られる水平方向の相手の駒の数を返す
+  # <引数> x:int(0~7), y:int(0~7), color:int(0~2)
+  # <返値> int(0~6)
+  # <詳細> メンバ変数__linesを使用して処理を軽くしている.
   def __takesHori(self, x, y, color):
     return self.__index.takes(self.__lines[Config.HORI_OFFSET + y], x, color)
   def __takesVert(self, x, y, color):
@@ -140,6 +176,12 @@ class Board:
     if abs(dif) > Config.CELL_NUM - 3:
       return 0
     return self.__index.takes(self.__lines[Config.DIAG135_OFFSET + dif + Config.CELL_NUM - 3], y - max(0, dif), color)
+  
+  # <概要> 水平方向の相手の駒を裏返す
+  # <引数> x:int(0~7), y:int(0~7), color:int(0~2)
+  # <返値> int(0~6)
+  # <詳細> メンバ変数__linesを使用して処理を軽くしている.
+  #        __linesの要素のstateが書き換わる(=boardの中身が書き換わる)ので注意
   def __flipHori(self, x, y, color):
     self.__index.flip(self.__lines[Config.HORI_OFFSET + y], x, color)
   def __flipVert(self, x, y, color):
@@ -153,66 +195,16 @@ class Board:
     if abs(dif) <= Config.CELL_NUM - 3:
       self.__index.flip(self.__lines[Config.DIAG135_OFFSET + dif + Config.CELL_NUM - 3], y - max(0, dif), color)
 
-class Index:
-  class Element:
-    def __init__(self):
-      self.to = -1
-      self.takes = 0
-  def __init__(self):
-    self.__matrix = [[[Index.Element(), Index.Element()] for i in range(Config.CELL_NUM)] for j in range(Config.PATTERNS_NUM)]
-    for code in range(Config.PATTERNS_NUM):
-      self.__initRow(code)
-  def __initRow(self, code):
-    line = [Cell(0, 0) for i in range(Config.CELL_NUM)]
-    Index.__decode(code, line)
-    for x in range(Config.CELL_NUM):
-     if line[x].state != Cell.EMPTY:
-      continue
-     self.__initElement(code, x, line)
-  def __initElement(self, i, j, line):
-    for color in [Cell.BLACK, Cell.WHITE]:
-      lineCpy = [Cell(0, 0) for k in range(Config.CELL_NUM)]
-      for (cellCpy, cell) in zip(lineCpy, line):
-        cellCpy.state = cell.state
-      lineCpy[j].state = color
-      takesLeft  = Index.__flipLine(lineCpy[:j][::-1], color)
-      takesRight = Index.__flipLine(lineCpy[j+1:], color)
-      self.__matrix[i][j][color].to    = Index.__encode(lineCpy)
-      self.__matrix[i][j][color].takes = takesLeft + takesRight
-  @classmethod
-  def __decode(cls, code, line):
-    for i in range(Config.CELL_NUM)[::-1]:
-      line[i].state = code / 3 ** i
-      code %= 3 ** i
-  @classmethod
-  def __encode(cls, line):
-    res = 0
-    for i, c in enumerate(line):
-      res += c * 3 ** i
-    return res
-  @classmethod
-  def __flipLine(cls, line, color):
-    for i, c in enumerate(line):
-      if c.state == Cell.EMPTY:
-        return 0
-      if c.state == color:
-        for d in line[:i]:
-          d.state = color
-        return i
-    return 0
-  def takes(self, line, x, color):
-    return self.__matrix[Index.__encode(line)][x][color].takes
-  def flip(self, line, x, color):
-    Index.__decode(self.__matrix[Index.__encode(line)][x][color].to, line)
 
 class Player(object):
   def __init__(self, board, color):
-    self.board = board
-    self.color = color
+    self.board = board  # boardへの参照
+    self.color = color  # 自分の色
   def takeTurn(self):
     raise NotImplementedError
   def canPut(self):
     return len(self.board.placeableCells(self.color)) > 0
+
 
 class AI(Player):
   def __init__(self, board, color):
@@ -224,8 +216,9 @@ class AI(Player):
     return [placeableCells[0].x, placeableCells[0].y]
   def takeTurn(self):
     x, y = self.__evaluate()
-    self.board.put(x, y, self.color)
+    self.board.put(x, y, self.color)  # 位置(xpos,ypos)に駒を置く
   
+
 class You(Player):
   def __init__(self, board, color):
     super(You, self).__init__(board, color)
@@ -237,19 +230,21 @@ class You(Player):
         if (event.type == KEYDOWN and event.key == K_ESCAPE):
           sys.exit()  # ESCAPEキーが押されたら終了
         if (event.type == KEYDOWN and event.key == K_BACKSPACE):
-          raise UndoRequest()
+          raise UndoRequest() # BACKSPACEキーが押されたらUndo
         if (event.type == MOUSEBUTTONDOWN):
           xpos = int(pygame.mouse.get_pos()[0]/Config.CELL_WIDTH)
           ypos = int(pygame.mouse.get_pos()[1]/Config.CELL_WIDTH)
           if self.board.placeable(xpos, ypos, self.color):
-            self.board.storeStates()
-            self.board.put(xpos, ypos, self.color)
+            self.board.storeStates()   # boardの要素のstateを書き換える前に,各stateを保存する
+            self.board.put(xpos, ypos, self.color)  # 位置(xpos,ypos)に駒を置く
             return
           else:
-            print "ERROR: You cannot put here." 
+            print "ERROR: You cannot put here."   # クリック地点が置けない場所ならループ継続
+
 
 class UndoRequest(Exception):
   def __init__(self): 0
+
 
 class Game:
   def __init__(self):
@@ -264,18 +259,17 @@ class Game:
     self.__screen.fill((0,0,0))
     pygame.display.set_caption('Othello')
     pygame.mouse.set_visible(True)
-    self.__board.printBoard()
   def run(self):
     while 1:
       self.__printBoard()
-      if self.__player[self.__turn%2].canPut():
+      if self.__player[self.__turn%2].canPut():  # 置ける場所があればTrue
         try:
-          self.__player[self.__turn%2].takeTurn()
+          self.__player[self.__turn%2].takeTurn() # 俺のターン
           self.__passedFlag = False
         except UndoRequest:
           self.__undo()
           continue
-      else:
+      else:     
         print self.__player[self.__turn%2], " passed."
         if self.__passedFlag:  # 二人ともパス->終了
           return
@@ -288,6 +282,7 @@ class Game:
     pygame.display.flip()
   def __undo(self):
     self.__board.loadStates()
+
 
 def main():
   game = Game()
