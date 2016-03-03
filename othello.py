@@ -8,6 +8,7 @@
 import pygame
 from pygame.locals import *
 import sys
+import copy
 import index
 
 class Cell:
@@ -28,11 +29,13 @@ class Config:
   WINDOW_WIDTH  = CELL_WIDTH * CELL_NUM
   WPOS          = CELL_WIDTH * (CELL_NUM - 1)
   AI_COLOR      = Cell.WHITE
-  PATTERNS_NUM    = 3 ** CELL_NUM
-  HORI_OFFSET     = 0
-  VERT_OFFSET     = CELL_NUM
-  DIAG045_OFFSET  = VERT_OFFSET + CELL_NUM
-  DIAG135_OFFSET  = DIAG045_OFFSET + CELL_NUM * 2 - 5
+  PATTERNS_NUM      = 3 ** CELL_NUM
+  HORI_OFFSET       = 0
+  VERT_OFFSET       = CELL_NUM
+  DIAG045_OFFSET    = VERT_OFFSET + CELL_NUM
+  DIAG135_OFFSET    = DIAG045_OFFSET + CELL_NUM * 2 - 5
+  MAX_SEARCH_DEPTH  = 2
+  INF = 1024
 
 
 class Board:
@@ -87,7 +90,6 @@ class Board:
     self.__flipHori(x, y, color)  # 水平方向を裏返す
     self.at(x, y).state = Cell.EMPTY
     self.__flipVert(x, y, color)  # 垂直方向を裏返す
-    return True
 
   def placeable(self, x, y, color):
     if self.at(x, y).state == Cell.EMPTY and self.takes(x, y, color) > 0:
@@ -209,11 +211,50 @@ class Player(object):
 class AI(Player):
   def __init__(self, board, color):
     super(AI, self).__init__(board, color)
+
   def __str__(self):
     return "AI"
+
+  # <概要> 現盤面で打てる位置に対してそれぞれNegaMax関数を呼び出し,
+  #        その値が最大となる位置を返す
   def __evaluate(self):
     placeableCells = self.board.placeableCells(self.color)
-    return [placeableCells[0].x, placeableCells[0].y]
+    maxValue = -Config.INF
+    placedCell = None
+    for placeableCell in placeableCells:
+      boardCpy = copy.deepcopy(self.board)
+      boardCpy.put(placeableCell.x, placeableCell.y, self.color)
+      value = -self.__negaMax(boardCpy, not color, 1)
+      if value > maxValue:
+        maxValue = value
+        placedCell = placeableCell
+    return [placedCell.x, placedCell.y]
+
+  # <概要> http://uguisu.skr.jp/othello/minimax.html
+  # <引数> board:Board型, color:int(0~1), depth:(1~MAX_SEARCH_DEPTH)
+  # <返値> int
+  # <詳細> boardの深いコピーをとっている
+  def __negaMax(self, board, color, depth):
+    if depth == Config.MAX_SEARCH_DEPTH:
+      return self.__evaluateLeaf(board, color)
+    maxValue = -Config.INF
+    for placeableCell in board.placeableCells(color):
+      boardCpy = copy.deepcopy(board)
+      boardCpy.put(placeableCell.x, placeableCell.y, color)
+      value = -self.__negaMax(boardCpy, not color, depth + 1)
+      maxValue = max(maxValue, value)
+    return maxValue
+
+  # <概要> 現盤面での駒の差を返す(仮)
+  def __evaluateLeaf(self, board, color):
+    res = 0
+    for cell in board.board:
+      if cell.state == color:
+        res += 1
+      elif cell.state == (not color):
+        res -= 1
+    return res
+
   def takeTurn(self):
     x, y = self.__evaluate()
     self.board.put(x, y, self.color)  # 位置(xpos,ypos)に駒を置く
