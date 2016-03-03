@@ -34,7 +34,7 @@ class Config:
   VERT_OFFSET       = CELL_NUM
   DIAG045_OFFSET    = VERT_OFFSET + CELL_NUM
   DIAG135_OFFSET    = DIAG045_OFFSET + CELL_NUM * 2 - 5
-  MAX_SEARCH_DEPTH  = 3
+  MAX_SEARCH_DEPTH  = 5
   INF = 1024
 
 
@@ -84,12 +84,10 @@ class Board:
   # <引数> x:int(0~7), y:int(0~7), color:int(0~2)
   def put(self, x, y, color):
     self.__flipDiag045(x, y, color) # 斜め45°方向を裏返す
-    self.at(x, y).state = Cell.EMPTY
     self.__flipDiag135(x, y, color) # 斜め135°方向を裏返す
-    self.at(x, y).state = Cell.EMPTY
     self.__flipHori(x, y, color)  # 水平方向を裏返す
-    self.at(x, y).state = Cell.EMPTY
     self.__flipVert(x, y, color)  # 垂直方向を裏返す
+    self.at(x,y).state = color
 
   def placeable(self, x, y, color):
     if self.at(x, y).state == Cell.EMPTY and self.takes(x, y, color) > 0:
