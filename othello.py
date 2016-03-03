@@ -34,7 +34,7 @@ class Config:
   VERT_OFFSET       = CELL_NUM
   DIAG045_OFFSET    = VERT_OFFSET + CELL_NUM
   DIAG135_OFFSET    = DIAG045_OFFSET + CELL_NUM * 2 - 5
-  MAX_SEARCH_DEPTH  = 2
+  MAX_SEARCH_DEPTH  = 3
   INF = 1024
 
 
@@ -55,7 +55,7 @@ class Board:
     self.__index      = index.Index()
     self.__dummyCell  = Cell(-1, -1)  # at()での範囲外のマスへの参照用
     self.__lines      = self.__initLines()
-    self.__prevStates = [Cell.EMPTY] * Config.CELL_NUM ** 2
+    self.__prevStates = None
 
   # <詳細> 範囲外への参照にはdummyCellを返す
   def at(self, x, y):
@@ -99,8 +99,7 @@ class Board:
   def placeableCells(self, color):
     return [cell for cell in self.board if self.placeable(cell.x, cell.y, color) ]
   def storeStates(self):
-    for i, cell in enumerate(self.board):
-      self.__prevStates[i] = cell.state
+    self.__prevStates = self.getStates()
   def loadStates(self):
     for i, cell in enumerate(self.board):
       cell.state = self.__prevStates[i]
@@ -110,6 +109,11 @@ class Board:
       if cell.state != Cell.EMPTY:
         counter[cell.state] += 1
     print "BLACK:", counter[Cell.BLACK], " WHITE:", counter[Cell.WHITE]
+  def getStates(self):
+    res = [None] * Config.CELL_NUM ** 2
+    for i, cell in enumerate(self.board):
+      res[i] = cell.state
+    return res
 
   # <概要> メンバ変数__linesを初期化する
   def __initLines(self):
@@ -216,39 +220,49 @@ class AI(Player):
     return "AI"
 
   # <概要> 現盤面で打てる位置に対してそれぞれNegaMax関数を呼び出し,
-  #        その値が最大となる位置を返す
+  #        その値が最大となる位置を返す.
+  #        中身は下の__nagaMax()とほぼ同じだが,返値の関係で関数を分ける必要があった
   def __evaluate(self):
+    states = self.board.getStates()
     placeableCells = self.board.placeableCells(self.color)
     maxValue = -Config.INF
     placedCell = None
     for placeableCell in placeableCells:
-      boardCpy = copy.deepcopy(self.board)
-      boardCpy.put(placeableCell.x, placeableCell.y, self.color)
-      value = -self.__negaMax(boardCpy, not color, 1)
+      self.board.put(placeableCell.x, placeableCell.y, self.color)
+      value = -self.__negaMax(not color, 1)
       if value > maxValue:
         maxValue = value
         placedCell = placeableCell
+      for i, cell in enumerate(self.board.board):
+        cell.state = states[i]
     return [placedCell.x, placedCell.y]
 
   # <概要> http://uguisu.skr.jp/othello/minimax.html
   # <引数> board:Board型, color:int(0~1), depth:(1~MAX_SEARCH_DEPTH)
   # <返値> int
-  # <詳細> boardの深いコピーをとっている
-  def __negaMax(self, board, color, depth):
-    if depth == Config.MAX_SEARCH_DEPTH:
-      return self.__evaluateLeaf(board, color)
+  # <詳細> 高速化のため,boardの深いコピーの代わりに各Cellのstateの書き換えを採用した
+  def __negaMax(self, color, depth):
+    if depth == Config.MAX_SEARCH_DEPTH: # 設定した深さまでたどり着いたら再帰終了
+      return self.__evaluateLeaf(color)
+    placeableCells = self.board.placeableCells(color)
+    if len(placeableCells) == 0:  # パス発生or試合終了でも再帰終了
+      return self.__evaluateLeaf(color)
+    states = [None] * Config.CELL_NUM ** 2
+    for i, cell in enumerate(self.board.board):
+      states[i] = cell.state
     maxValue = -Config.INF
-    for placeableCell in board.placeableCells(color):
-      boardCpy = copy.deepcopy(board)
-      boardCpy.put(placeableCell.x, placeableCell.y, color)
-      value = -self.__negaMax(boardCpy, not color, depth + 1)
+    for placeableCell in placeableCells:
+      self.board.put(placeableCell.x, placeableCell.y, color)
+      value = -self.__negaMax(not color, depth + 1)
       maxValue = max(maxValue, value)
+      for i, cell in enumerate(self.board.board):
+        cell.state = states[i]
     return maxValue
 
   # <概要> 現盤面での駒の差を返す(仮)
-  def __evaluateLeaf(self, board, color):
+  def __evaluateLeaf(self, color):
     res = 0
-    for cell in board.board:
+    for cell in self.board.board:
       if cell.state == color:
         res += 1
       elif cell.state == (not color):
