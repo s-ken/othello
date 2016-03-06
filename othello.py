@@ -227,7 +227,7 @@ class AI(Player):
     placedCell = None
     for placeableCell in placeableCells:
       self.board.put(placeableCell.x, placeableCell.y, self.color)
-      value = -self.__negaMax(not color, 1)
+      value = -self.__alphaBeta(not color, 1, maxValue, Config.INF)
       if value > maxValue:
         maxValue = value
         placedCell = placeableCell
@@ -235,25 +235,24 @@ class AI(Player):
         cell.state = state
     return [placedCell.x, placedCell.y]
 
-  # <概要> http://uguisu.skr.jp/othello/minimax.html
-  # <引数> board:Board型, color:int(0~1), depth:(1~MAX_SEARCH_DEPTH)
+  # <概要> http://uguisu.skr.jp/othello/alpha-beta.html
+  # <引数> board:Board型, color:int(0~1), depth:(1~MAX_SEARCH_DEPTH), alpha:int, beta:int
   # <返値> int
-  # <詳細> 高速化のため,boardの深いコピーの代わりに各Cellのstateのコピーを採用した
-  def __negaMax(self, color, depth):
+  def __alphaBeta(self, color, depth, alpha, beta):
     if depth == Config.MAX_SEARCH_DEPTH: # 設定した深さまでたどり着いたら再帰終了
       return self.__evaluateLeaf(color)
     placeableCells = self.board.placeableCells(color)
     if len(placeableCells) == 0:  # パス発生or試合終了でも再帰終了
       return self.__evaluateLeaf(color)
     statesCpy = self.board.getStates()
-    maxValue = -Config.INF
     for placeableCell in placeableCells:
       self.board.put(placeableCell.x, placeableCell.y, color)
-      value = -self.__negaMax(not color, depth + 1)
-      maxValue = max(maxValue, value)
+      alpha = max(alpha, -self.__alphaBeta(not color, depth + 1, -beta, -alpha))
+      if alpha >= beta:
+        return alpha  # カット
       for cell, state in zip(self.board.board, statesCpy):
         cell.state = state
-    return maxValue
+    return alpha
 
   # <概要> 現盤面での駒の差を返す(仮)
   def __evaluateLeaf(self, color):
