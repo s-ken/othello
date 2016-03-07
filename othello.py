@@ -8,7 +8,6 @@
 import pygame
 from pygame.locals import *
 import sys
-import copy
 import index
 
 class Cell:
@@ -34,8 +33,17 @@ class Config:
   VERT_OFFSET       = CELL_NUM
   DIAG045_OFFSET    = VERT_OFFSET + CELL_NUM
   DIAG135_OFFSET    = DIAG045_OFFSET + CELL_NUM * 2 - 5
-  MAX_SEARCH_DEPTH  = 7
+  MAX_SEARCH_HEIGHT  = 4
   INF = 1024
+  WEIGHTS = (  30, -12,  0, -1, -1,  0, -12,  30,
+              -12, -15, -3, -3, -3, -3, -15, -12,
+                0,  -3,  0, -1, -1,  0,  -3,   0,
+               -1,  -3, -1, -1, -1, -1,  -3,  -1,
+               -1,  -3, -1, -1, -1, -1,  -3,  -1,
+                0,  -3,  0, -1, -1,  0,  -3,   0,
+              -12, -15, -3, -3, -3, -3, -15, -12,
+               30, -12,  0, -1, -1,  0, -12,  30
+            )
 
 
 class Board:
@@ -213,21 +221,22 @@ class Player(object):
 class AI(Player):
   def __init__(self, board, color):
     super(AI, self).__init__(board, color)
+    #self.__transpositionTable = None
 
   def __str__(self):
     return "AI"
 
   # <概要> 現盤面で打てる位置に対してそれぞれNegaMax関数を呼び出し,
   #        その値が最大となる位置を返す.
-  #        中身は下の__nagaMax()とほぼ同じだが,返値の関係で関数を分ける必要があった
   def __evaluate(self):
-    statesCpy = self.board.getStates()
+    #self.__transpositionTable = {}  # 置換表を空に
+    statesCpy = self.board.getStates()  # stateをコピー
     placeableCells = self.board.placeableCells(self.color)
     maxValue = -Config.INF
     placedCell = None
     for placeableCell in placeableCells:
       self.board.put(placeableCell.x, placeableCell.y, self.color)
-      value = -self.__alphaBeta(not color, 1, maxValue, Config.INF)
+      value = -self.__alphaBeta(not color, Config.MAX_SEARCH_HEIGHT, maxValue, Config.INF)
       if value > maxValue:
         maxValue = value
         placedCell = placeableCell
@@ -236,32 +245,36 @@ class AI(Player):
     return [placedCell.x, placedCell.y]
 
   # <概要> http://uguisu.skr.jp/othello/alpha-beta.html
-  # <引数> board:Board型, color:int(0~1), depth:(1~MAX_SEARCH_DEPTH), alpha:int, beta:int
+  # <引数> board:Board型, color:int(0~1), height:(1~MAX_SEARCH_HEIGHT), alpha:int, beta:int
   # <返値> int
-  def __alphaBeta(self, color, depth, alpha, beta):
-    if depth == Config.MAX_SEARCH_DEPTH: # 設定した深さまでたどり着いたら再帰終了
+  def __alphaBeta(self, color, height, alpha, beta):
+    if not height: # 設定した深さまでたどり着いたら再帰終了
       return self.__evaluateLeaf(color)
     placeableCells = self.board.placeableCells(color)
-    if len(placeableCells) == 0:  # パス発生or試合終了でも再帰終了
+    if not len(placeableCells):  # パス発生or試合終了でも再帰終了
       return self.__evaluateLeaf(color)
     statesCpy = self.board.getStates()
+    #key = tuple(statesCpy)
+    #if key in self.__transpositionTable:
+    #  return self.__transpositionTable[key]
     for placeableCell in placeableCells:
       self.board.put(placeableCell.x, placeableCell.y, color)
-      alpha = max(alpha, -self.__alphaBeta(not color, depth + 1, -beta, -alpha))
+      alpha = max(alpha, -self.__alphaBeta(not color, height - 1, -beta, -alpha))
       if alpha >= beta:
         return alpha  # カット
       for cell, state in zip(self.board.board, statesCpy):
         cell.state = state
+    #self.__transpositionTable[key] = alpha
     return alpha
 
-  # <概要> 現盤面での駒の差を返す(仮)
+  # <概要> てきとーに http://uguisu.skr.jp/othello/5-1.html の重み付け
   def __evaluateLeaf(self, color):
     res = 0
-    for cell in self.board.board:
+    for cell, weight in zip(self.board.board, Config.WEIGHTS):
       if cell.state == color:
-        res += 1
+        res += weight
       elif cell.state == (not color):
-        res -= 1
+        res -= weight
     return res
 
   def takeTurn(self):
