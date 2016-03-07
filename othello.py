@@ -44,6 +44,8 @@ class Config:
               -12, -15, -3, -3, -3, -3, -15, -12,
                30, -12,  0, -1, -1,  0, -12,  30
             )
+  MIDDLE_PHASE = 20
+  LAST_PHASE = 40
 
 
 class Board:
@@ -222,27 +224,40 @@ class AI(Player):
   def __init__(self, board, color):
     super(AI, self).__init__(board, color)
     #self.__transpositionTable = None
+    self.__turnCounter = color
 
   def __str__(self):
     return "AI"
 
-  # <概要> 現盤面で打てる位置に対してそれぞれNegaMax関数を呼び出し,
+  # <概要> 現盤面で打てる位置に対してそれぞれ評価関数を呼び出し,
   #        その値が最大となる位置を返す.
   def __evaluate(self):
     #self.__transpositionTable = {}  # 置換表を空に
-    statesCpy = self.board.getStates()  # stateをコピー
     placeableCells = self.board.placeableCells(self.color)
     maxValue = -Config.INF
-    placedCell = None
     for placeableCell in placeableCells:
-      self.board.put(placeableCell.x, placeableCell.y, self.color)
-      value = -self.__alphaBeta(not color, Config.MAX_SEARCH_HEIGHT, maxValue, Config.INF)
+      value = self.__evalateCell(placeableCell) # cellを評価
       if value > maxValue:
         maxValue = value
-        placedCell = placeableCell
-      for cell, state in zip(self.board.board, statesCpy):
+        res = placeableCell
+    return (res.x, res.y)
+
+  # <概要> 与えられたcellに駒を置いた場合の評価値を返す
+  #        序盤中盤終盤ごとに評価関数を割当てている
+  def __evalateCell(self, cell):
+    statesCpy = self.board.getStates()  # 盤面コピー
+    if self.__turnCounter < Config.MIDDLE_PHASE: # 序盤
+      self.board.put(cell.x, cell.y, self.color)
+      res = -self.__alphaBeta(not self.color, Config.MAX_SEARCH_HEIGHT, -Config.INF, Config.INF)
+    elif Config.MIDDLE_PHASE <= self.__turnCounter < Config.LAST_PHASE:  # 中盤
+      self.board.put(cell.x, cell.y, self.color)
+      res = -self.__alphaBeta(not self.color, Config.MAX_SEARCH_HEIGHT, -Config.INF, Config.INF)
+    else: # 終盤
+      self.board.put(cell.x, cell.y, self.color)
+      res = -self.__alphaBeta(not self.color, Config.MAX_SEARCH_HEIGHT, -Config.INF, Config.INF)
+    for cell, state in zip(self.board.board, statesCpy): # 盤面復元
         cell.state = state
-    return [placedCell.x, placedCell.y]
+    return res
 
   # <概要> http://uguisu.skr.jp/othello/alpha-beta.html
   # <引数> board:Board型, color:int(0~1), height:(1~MAX_SEARCH_HEIGHT), alpha:int, beta:int
@@ -280,6 +295,7 @@ class AI(Player):
   def takeTurn(self):
     x, y = self.__evaluate()
     self.board.put(x, y, self.color)  # 位置(xpos,ypos)に駒を置く
+    self.__turnCounter += 2
   
 
 class You(Player):
