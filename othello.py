@@ -240,9 +240,10 @@ class Board:
 
 
 class Player(object):
-  def __init__(self, board, color):
+  def __init__(self, board, color, openingBook):
     self.board = board  # boardへの参照
     self.color = color  # 自分の色
+    self.openingBook = openingBook
   def takeTurn(self):
     raise NotImplementedError
   def canPut(self):
@@ -250,8 +251,8 @@ class Player(object):
 
 
 class AI(Player):
-  def __init__(self, board, color):
-    super(AI, self).__init__(board, color)
+  def __init__(self, board, color, openingBook):
+    super(AI, self).__init__(board, color, openingBook)
     #self.__transpositionTable = None
     self.__turnCounter = color
 
@@ -320,15 +321,18 @@ class AI(Player):
     return res
 
   def takeTurn(self):
-    x, y = self.__evaluate()
+    if self.openingBook.isValid():
+      x, y = self.openingBook.readBook()
+    else:
+      x, y = self.__evaluate()
     self.board.put(x, y, self.color)  # 位置(xpos,ypos)に駒を置く
     self.board.modifyEmptyCells(x, y)
     self.__turnCounter += 2
   
 
 class You(Player):
-  def __init__(self, board, color):
-    super(You, self).__init__(board, color)
+  def __init__(self, board, color, openingBook):
+    super(You, self).__init__(board, color, openingBook)
   def __str__(self):
     return "You"
   def takeTurn(self):
@@ -345,6 +349,7 @@ class You(Player):
             self.board.storeStates()   # boardの要素のstateを書き換える前に,各stateを保存する
             self.board.put(xpos, ypos, self.color)  # 位置(xpos,ypos)に駒を置く
             self.board.modifyEmptyCells(xpos, ypos)
+            self.openingBook.proceed(xpos, ypos)  # 定石通りかどうかチェック
             return
           else:
             print "ERROR: You cannot put here."   # クリック地点が置けない場所ならループ継続
@@ -353,6 +358,55 @@ class You(Player):
 class UndoRequest(Exception):
   def __init__(self): 0
 
+# =================================== OpeningBook 関連 ===================================
+# OpeningBookの実体である木構造のNode
+class Node: # TODO
+  def __init__(self):
+    self.child = {} # key=位置,val=Nodeの辞書型?
+
+
+class OpeningBook:
+  def __init__(self):
+    self.__currentNode = self.__initBook() # 木のroot
+    self.__valid = True   # 定石通り進行中かどうか判定用のflag
+
+  # <概要> file入力からOpeningBookを構築する
+  def __initBook(self): # TODO
+    root = Node()
+    node = self.__addChild(root, self.__pos2key(2, 3))  # (2,3)に黒
+    self.__addChild(node, self.__pos2key(2, 2))         # (2,2)に白
+    return root
+
+  def __pos2key(self, x, y):
+    return x + y * Config.CELL_NUM
+
+  def __key2pos(self, key):
+    return (key % Config.CELL_NUM, key / Config.CELL_NUM)
+
+  # <概要> nodeに子nodeを追加
+  def __addChild(self, node, key):
+    node.child[key] = Node()
+    return node.child[key]
+
+  # <概要> 相手(You)が定石通りにコマを置いているか判定しながらbookを読み進める
+  # <引数> x:int, y:int
+  def proceed(self, x, y):
+    key = self.__pos2key(x, y)
+    if key in self.__currentNode.child:
+      self.__currentNode = self.__currentNode.child[key]  # 相手(You)が定石通り(bookに載ってるパターン)に打ってきたら先に進む
+    else:
+      self.__valid = False  # 相手(You)が定石から外れたらOpenBookを捨てて次のphaseへ
+
+  # <概要> bookを読んでコマを置くべき位置を得る
+  def readBook(self):
+    return self.__key2pos(self.__currentNode.child.keys()[0]) # 候補の一番目を返す(仮)
+
+  # <概要> 現状定石通りかどうかの真偽値を返す
+  def isValid(self):
+    return self.__valid
+
+# ======================================================================================
+    
 
 class Game:
   def __init__(self):
@@ -361,9 +415,10 @@ class Game:
     self.__board      = Board(self.__screen)
     self.__turn       = Cell.BLACK
     self.__passedFlag = False
+    self.__openingBook = OpeningBook()
     self.__player     = [None] * 2
-    self.__player[Config.AI_COLOR]      = AI(self.__board, Config.AI_COLOR)
-    self.__player[not Config.AI_COLOR]  = You(self.__board, not Config.AI_COLOR)
+    self.__player[Config.AI_COLOR]      = AI(self.__board, Config.AI_COLOR, self.__openingBook)
+    self.__player[not Config.AI_COLOR]  = You(self.__board, not Config.AI_COLOR, self.__openingBook)
     self.__screen.fill((0,0,0))
     pygame.display.set_caption('Othello')
     pygame.mouse.set_visible(True)
