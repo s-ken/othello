@@ -8,8 +8,9 @@ class Index:
       self.fliped = [False] * othello.Config.CELL_NUM
       self.takes = 0
   def __init__(self):
-    self.__matrix = [[[Index.Element(), Index.Element()] for i in range(othello.Config.CELL_NUM)] for j in range(othello.Config.PATTERNS_NUM)]
-    for code in range(othello.Config.PATTERNS_NUM):
+    PATTERNS_NUM = 3 ** othello.Config.CELL_NUM
+    self.__matrix = [[[Index.Element(), Index.Element()] for i in range(othello.Config.CELL_NUM)] for j in range(PATTERNS_NUM)]
+    for code in range(PATTERNS_NUM):
       self.__initRow(code)
 
   # <概要> __matrix[code]を初期化する

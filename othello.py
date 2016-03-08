@@ -28,12 +28,7 @@ class Config:
   WINDOW_WIDTH  = CELL_WIDTH * CELL_NUM
   WPOS          = CELL_WIDTH * (CELL_NUM - 1)
   AI_COLOR      = Cell.WHITE
-  PATTERNS_NUM      = 3 ** CELL_NUM
-  HORI_OFFSET       = 0
-  VERT_OFFSET       = CELL_NUM
-  DIAG045_OFFSET    = VERT_OFFSET + CELL_NUM
-  DIAG135_OFFSET    = DIAG045_OFFSET + CELL_NUM * 2 - 5
-  MAX_SEARCH_HEIGHT  = 4
+  MAX_SEARCH_HEIGHT = 4 # ゲーム木の高さ
   INF = 1024
   WEIGHTS = (  30, -12,  0, -1, -1,  0, -12,  30,
               -12, -15, -3, -3, -3, -3, -15, -12,
@@ -168,24 +163,28 @@ class Board:
 
   # ======================================== ReferenceContainer 初期化関連 ========================================
   def __initReferenceContainer(self):
+    HORI_OFFSET       = 0
+    VERT_OFFSET       = Config.CELL_NUM
+    DIAG045_OFFSET    = VERT_OFFSET + Config.CELL_NUM
+    DIAG135_OFFSET    = DIAG045_OFFSET + Config.CELL_NUM * 2 - 5
     lines = self.__getLines()
     res = [None] * Config.CELL_NUM ** 2
     for i in range(Config.CELL_NUM ** 2):
       x = i % Config.CELL_NUM
       y = i / Config.CELL_NUM
-      horiLine = lines[Config.HORI_OFFSET + y]
+      horiLine = lines[HORI_OFFSET + y]
       horiPos  = x
-      vertLine = lines[Config.VERT_OFFSET + x]
+      vertLine = lines[VERT_OFFSET + x]
       vertPos  = y
       diag045Line = None
       diag045Pos  = -1
       if 2 <= x + y <= Config.CELL_NUM * 2 - 4: # サイズが3以上(flipが発生する)
-        diag045Line = lines[Config.DIAG045_OFFSET + x + y - 2]
+        diag045Line = lines[DIAG045_OFFSET + x + y - 2]
         diag045Pos  = y - max(0, x + y - Config.CELL_NUM + 1)
       diag135Line = None
       diag135Pos  = -1
       if abs(y - x) <= Config.CELL_NUM - 3: # サイズが3以上(flipが発生する)
-        diag135Line = lines[Config.DIAG135_OFFSET + y - x + Config.CELL_NUM - 3]
+        diag135Line = lines[DIAG135_OFFSET + y - x + Config.CELL_NUM - 3]
         diag135Pos  = y - max(0, y - x)
       res[i] = ReferenceContainer(horiLine, horiPos, vertLine, vertPos, diag045Line, diag045Pos, diag135Line, diag135Pos)
     return res
