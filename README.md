@@ -43,7 +43,12 @@ output() : 結果を出力する<br>
 <s>・AIの先攻後攻を決めれるように</s><br>
 <s>・Undo機能の実装</s> (BackSpaceでUndo)<br>
 ・探索アルゴリズムの改良<br>
+	→MoveOrderingの実装<br>
+	→NegaScout法の実装<br>
+	→置換表の実装<br>
+	→並列化<br>
 ・evaluateLeaf関数の本実装<br>
-・phase毎の評価関数の実装(序盤は定石(棋譜)使用とか?)<br>
+・phase毎の評価関数の実装<br>
+	→OpeningBook(定石)の実装<br>
 ・Indexクラスの行列圧縮<br>
 </b>

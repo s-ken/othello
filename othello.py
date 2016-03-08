@@ -297,6 +297,7 @@ class AI(Player):
     placeableCells = self.board.placeableCells(color)
     if not len(placeableCells):  # パス発生or試合終了でも再帰終了
       return self.__evaluateLeaf(color)
+    placeableCells = self.__moveOrdering(placeableCells)
     statesCpy = self.board.getStates()
     #key = tuple(statesCpy)
     #if key in self.__transpositionTable:
@@ -319,6 +320,11 @@ class AI(Player):
       elif cell.state == (not color):
         res -= weight
     return res
+
+  # <概要> 与えられた次手候補cellリストを評価値の見込みが高い順にソートする
+  #        これによってゲーム木探索中の枝刈り回数を増加させる
+  def __moveOrdering(self, cells):  # TODO
+    return cells
 
   def takeTurn(self):
     if self.openingBook.isValid():
