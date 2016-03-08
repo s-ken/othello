@@ -5,11 +5,12 @@ import othello
 class Index:
   class Element:
     def __init__(self):
-      self.to = -1
+      self.fliped = [False] * othello.Config.CELL_NUM
       self.takes = 0
   def __init__(self):
-    self.__matrix = [[[Index.Element(), Index.Element()] for i in range(othello.Config.CELL_NUM)] for j in range(othello.Config.PATTERNS_NUM)]
-    for code in range(othello.Config.PATTERNS_NUM):
+    PATTERNS_NUM = 3 ** othello.Config.CELL_NUM
+    self.__matrix = [[[Index.Element(), Index.Element()] for i in range(othello.Config.CELL_NUM)] for j in range(PATTERNS_NUM)]
+    for code in range(PATTERNS_NUM):
       self.__initRow(code)
 
   # <概要> __matrix[code]を初期化する
@@ -27,14 +28,10 @@ class Index:
   # <詳細> lineを駒を置く位置の右側と左側に分割して計算している.
   def __initElement(self, i, j, line):
     for color in [othello.Cell.BLACK, othello.Cell.WHITE]:
-      lineCpy = [othello.Cell(0, 0) for k in range(othello.Config.CELL_NUM)]
-      for (cellCpy, cell) in zip(lineCpy, line):  # lineをコピーする
-        cellCpy.state = cell.state
-      lineCpy[j].state = color
-      takesLeft  = Index.__flipOneSide(lineCpy[:j][::-1], color)  # 左側を計算する
-      takesRight = Index.__flipOneSide(lineCpy[j+1:], color)      # 右側を計算する
-      self.__matrix[i][j][color].to    = Index.__encode(lineCpy)
-      self.__matrix[i][j][color].takes = takesLeft + takesRight
+      takesLeft,  flipLeft  = Index.__flipOneSide(line[:j][::-1], color)  # 左側を計算する
+      takesRight, flipRight = Index.__flipOneSide(line[j+1:], color)      # 右側を計算する
+      self.__matrix[i][j][color].fliped = flipLeft[::-1] + [False] + flipRight
+      self.__matrix[i][j][color].takes  = takesLeft + takesRight
 
   # <概要> デコード結果をlistの各要素のstateに反映させる
   # <引数> code:int(0~6560), line:Cell型List[8]
@@ -54,25 +51,24 @@ class Index:
       res += c * 3 ** i
     return res
 
-  # <概要> 駒を裏返してそのとき取れる相手の駒数を返す
+  # <概要> 駒を裏返してそのとき取れる相手の駒数と駒の裏返る位置リストを返す
   # <引数> line:Cell型List[0~7] color:int(0~2)
-  # <返値> int(0~6)
+  # <返値> int(0~6), bool型リスト[0~6]
   # <詳細> line[0]の隣にcolor色の駒を置いたときのことを考える
   #        (例)        
   #        line = ○○●-, color = ●のとき
   #        X○○○●- の位置Xに●を置く場合を考えるので
-  #        line = ●●●- に書き換えられ
-  #        2が返り値となる.
+  #        返り値は2,[True,True,Flase,False]となる
   @classmethod
   def __flipOneSide(cls, line, color):
+    fliped = [False] * len(line)
     for i, c in enumerate(line):
       if c.state == othello.Cell.EMPTY:
-        return 0
+        return (0, fliped)
       if c.state == color:
-        for d in line[:i]:
-          d.state = color
-        return i
-    return 0
+        fliped[:i] = [True] * i
+        return (i, fliped)
+    return (0, fliped)
 
   # <概要> lineの位置xにcolor色の駒を置いたときに得られる相手の駒数を返す
   # <引数> line:Cell型List[8], x:int(0~7), color:int(0~2)
@@ -84,4 +80,6 @@ class Index:
   # <引数> line:Cell型List[8], x:int(0~7), color:int(0~2)
   # <詳細> 引数lineの中身が書き換わるので注意
   def flip(self, line, x, color):
-    Index.__decode(self.__matrix[Index.__encode(line)][x][color].to, line)
+    for i, fliped in enumerate(self.__matrix[Index.__encode(line)][x][color].fliped):
+      if fliped:
+        line[i].state = color

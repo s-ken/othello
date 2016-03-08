@@ -8,7 +8,6 @@
 import pygame
 from pygame.locals import *
 import sys
-import copy
 import index
 
 class Cell:
@@ -29,13 +28,27 @@ class Config:
   WINDOW_WIDTH  = CELL_WIDTH * CELL_NUM
   WPOS          = CELL_WIDTH * (CELL_NUM - 1)
   AI_COLOR      = Cell.WHITE
-  PATTERNS_NUM      = 3 ** CELL_NUM
-  HORI_OFFSET       = 0
-  VERT_OFFSET       = CELL_NUM
-  DIAG045_OFFSET    = VERT_OFFSET + CELL_NUM
-  DIAG135_OFFSET    = DIAG045_OFFSET + CELL_NUM * 2 - 5
-  MAX_SEARCH_DEPTH  = 2
+  MAX_SEARCH_HEIGHT = 4 # ゲーム木の高さ
   INF = 1024
+  WEIGHTS = (  30, -12,  0, -1, -1,  0, -12,  30,
+              -12, -15, -3, -3, -3, -3, -15, -12,
+                0,  -3,  0, -1, -1,  0,  -3,   0,
+               -1,  -3, -1, -1, -1, -1,  -3,  -1,
+               -1,  -3, -1, -1, -1, -1,  -3,  -1,
+                0,  -3,  0, -1, -1,  0,  -3,   0,
+              -12, -15, -3, -3, -3, -3, -15, -12,
+               30, -12,  0, -1, -1,  0, -12,  30
+            )
+  MIDDLE_PHASE = 20
+  LAST_PHASE = 40
+
+
+# 特定のマスにかかる縦横斜めの4つのCell列と,そのそれぞれの列の内でのマスの位置を格納するクラス
+# takes(),put()で使用される
+class ReferenceContainer:
+  def __init__(self, horiLine, horiPos, vertLine, vertPos, diag045Line, diag045Pos, diag135Line, diag135Pos):
+    self.line = (horiLine, vertLine, diag045Line, diag135Line)
+    self.pos  = (horiPos, vertPos, diag045Pos, diag135Pos)
 
 
 class Board:
@@ -54,10 +67,17 @@ class Board:
     self.screen     = screen
     self.__index      = index.Index()
     self.__dummyCell  = Cell(-1, -1)  # at()での範囲外のマスへの参照用
-    self.__lines      = self.__initLines()
-    self.__prevStates = [Cell.EMPTY] * Config.CELL_NUM ** 2
+    self.__prevStates = None
+    self.__referenceContainer = self.__initReferenceContainer() # サイズは64
+    self.__emptyCells = [cell for cell in self.board] # 空マスのリスト. placeableCells()で使用する
+    self.modifyEmptyCells(3, 3)
+    self.modifyEmptyCells(3, 4)
+    self.modifyEmptyCells(4, 3)
+    self.modifyEmptyCells(4, 4)
 
   # <詳細> 範囲外への参照にはdummyCellを返す
+  #        (範囲外への参照は__getDiagXXXLines()中で
+  #        サイズが8未満の斜めのCell列を得るときに発生する)
   def at(self, x, y):
     if x < 0 or x >= Config.CELL_NUM or y < 0 or y >= Config.CELL_NUM:
       return self.__dummyCell
@@ -74,36 +94,7 @@ class Board:
         self.screen.blit(self.white_img, self.white_rect.move(xy))
     pygame.display.flip()
 
-  # <概要> 位置(x,y)にcolor色の駒を置いて得られる相手の駒数を返す
-  # <引数> x:int(0~7), y:int(0~7), color:int(0~2)
-  # <返値> int(0~6)
-  def takes(self, x, y, color):
-    return self.__takesHori(x, y, color) + self.__takesVert(x, y, color) + self.__takesDiag045(x, y, color) + self.__takesDiag135(x, y, color)
-  
-  # <概要> 位置(x,y)にcolor色の駒を置いて相手の駒を裏返す
-  # <引数> x:int(0~7), y:int(0~7), color:int(0~2)
-  def put(self, x, y, color):
-    self.__flipDiag045(x, y, color) # 斜め45°方向を裏返す
-    self.at(x, y).state = Cell.EMPTY
-    self.__flipDiag135(x, y, color) # 斜め135°方向を裏返す
-    self.at(x, y).state = Cell.EMPTY
-    self.__flipHori(x, y, color)  # 水平方向を裏返す
-    self.at(x, y).state = Cell.EMPTY
-    self.__flipVert(x, y, color)  # 垂直方向を裏返す
-
-  def placeable(self, x, y, color):
-    if self.at(x, y).state == Cell.EMPTY and self.takes(x, y, color) > 0:
-      return True
-    else:
-      return False
-  def placeableCells(self, color):
-    return [cell for cell in self.board if self.placeable(cell.x, cell.y, color) ]
-  def storeStates(self):
-    for i, cell in enumerate(self.board):
-      self.__prevStates[i] = cell.state
-  def loadStates(self):
-    for i, cell in enumerate(self.board):
-      cell.state = self.__prevStates[i]
+  # <概要> 駒の数をプリントする 
   def printResult(self):
     counter = [0, 0]
     for cell in self.board:
@@ -111,8 +102,94 @@ class Board:
         counter[cell.state] += 1
     print "BLACK:", counter[Cell.BLACK], " WHITE:", counter[Cell.WHITE]
 
-  # <概要> メンバ変数__linesを初期化する
-  def __initLines(self):
+  # <概要> 位置(x,y)にcolor色の駒を置いて得られる相手の駒数を返す
+  # <引数> x:int(0~7), y:int(0~7), color:int(0~2)
+  # <返値> int(0~6)
+  def takes(self, x, y, color):
+    container = self.__referenceContainer[x + y * Config.CELL_NUM]
+    res = 0
+    for i in range(4):
+      if container.pos[i] >= 0:
+        res += self.__index.takes(container.line[i], container.pos[i], color)
+    return res
+  
+  # <概要> 位置(x,y)にcolor色の駒を置いて相手の駒を裏返す
+  # <引数> x:int(0~7), y:int(0~7), color:int(0~2)
+  def put(self, x, y, color):
+    container = self.__referenceContainer[x + y * Config.CELL_NUM]
+    for i in range(4):
+      if container.pos[i] >= 0:
+        self.__index.flip(container.line[i], container.pos[i], color)
+    self.at(x,y).state = color
+
+  def placeable(self, x, y, color):
+    if self.at(x, y).state == Cell.EMPTY and self.takes(x, y, color) > 0:
+      return True
+    else:
+      return False
+
+  def placeableCells(self, color):
+    return [cell for cell in self.__emptyCells if self.placeable(cell.x, cell.y, color) ]
+
+  # ==================== Undo 関連 =====================
+  def storeStates(self):
+    self.__prevStates = self.getStates()
+
+  def loadStates(self):
+    restoreStates(self.__prevStates)
+
+  # <概要> 現盤面のstateを返す
+  #        AIのゲーム木探索での盤面保存にも使用している
+  def getStates(self):
+    res = [None] * Config.CELL_NUM ** 2
+    for i, cell in enumerate(self.board):
+      res[i] = cell.state
+    return res
+
+  # <概要> 盤面復元用の関数
+  #        AIのゲーム木探索での盤面復元にも使用している
+  def restoreStates(self, states):
+    for cell, state in zip(self.board, states): # 盤面復元
+        cell.state = state
+  # ==================================================
+
+  # <概要> 空マスリストの更新
+  # <詳細> 本来ならこの処理をput()に入れてしまいたいところだが
+  #        put()はゲーム木の探索過程で何度も呼び出されるため,ちょっとそれきつい感じ.
+  #        ということでpublicな関数にしてPlayerのtakeTurn()内のput() <-実際の盤面に駒が置かれる
+  #        のあとにこれを呼び出すことにした
+  def modifyEmptyCells(self, x, y):
+    self.__emptyCells.remove(self.at(x,y))
+
+  # ======================================== ReferenceContainer 初期化関連 ========================================
+  def __initReferenceContainer(self):
+    HORI_OFFSET       = 0
+    VERT_OFFSET       = Config.CELL_NUM
+    DIAG045_OFFSET    = VERT_OFFSET + Config.CELL_NUM
+    DIAG135_OFFSET    = DIAG045_OFFSET + Config.CELL_NUM * 2 - 5
+    lines = self.__getLines()
+    res = [None] * Config.CELL_NUM ** 2
+    for i in range(Config.CELL_NUM ** 2):
+      x = i % Config.CELL_NUM
+      y = i / Config.CELL_NUM
+      horiLine = lines[HORI_OFFSET + y]
+      horiPos  = x
+      vertLine = lines[VERT_OFFSET + x]
+      vertPos  = y
+      diag045Line = None
+      diag045Pos  = -1
+      if 2 <= x + y <= Config.CELL_NUM * 2 - 4: # サイズが3以上(flipが発生する)
+        diag045Line = lines[DIAG045_OFFSET + x + y - 2]
+        diag045Pos  = y - max(0, x + y - Config.CELL_NUM + 1)
+      diag135Line = None
+      diag135Pos  = -1
+      if abs(y - x) <= Config.CELL_NUM - 3: # サイズが3以上(flipが発生する)
+        diag135Line = lines[DIAG135_OFFSET + y - x + Config.CELL_NUM - 3]
+        diag135Pos  = y - max(0, y - x)
+      res[i] = ReferenceContainer(horiLine, horiPos, vertLine, vertPos, diag045Line, diag045Pos, diag135Line, diag135Pos)
+    return res
+
+  def __getLines(self):
     return self.__getHoriLines() + self.__getVertLines() + self.__getDiag045Lines() + self.__getDiag135Lines()
   
   # <概要> 水平方向のCell型ListからなるListを返す
@@ -159,43 +236,7 @@ class Board:
         x += 1
         y += 1
     return res
-
-  # <概要> 位置(x,y)にcolor色の駒を置いたときに得られる水平方向の相手の駒の数を返す
-  # <引数> x:int(0~7), y:int(0~7), color:int(0~2)
-  # <返値> int(0~6)
-  # <詳細> メンバ変数__linesを使用して処理を軽くしている.
-  def __takesHori(self, x, y, color):
-    return self.__index.takes(self.__lines[Config.HORI_OFFSET + y], x, color)
-  def __takesVert(self, x, y, color):
-    return self.__index.takes(self.__lines[Config.VERT_OFFSET + x], y, color)
-  def __takesDiag045(self, x, y, color):
-    sum = x + y
-    if sum < 2 or sum > Config.CELL_NUM * 2 - 4:
-      return 0
-    return self.__index.takes(self.__lines[Config.DIAG045_OFFSET + sum - 2], y - max(0, sum - Config.CELL_NUM + 1), color)
-  def __takesDiag135(self, x, y, color):
-    dif = y - x
-    if abs(dif) > Config.CELL_NUM - 3:
-      return 0
-    return self.__index.takes(self.__lines[Config.DIAG135_OFFSET + dif + Config.CELL_NUM - 3], y - max(0, dif), color)
-  
-  # <概要> 水平方向の相手の駒を裏返す
-  # <引数> x:int(0~7), y:int(0~7), color:int(0~2)
-  # <返値> int(0~6)
-  # <詳細> メンバ変数__linesを使用して処理を軽くしている.
-  #        __linesの要素のstateが書き換わる(=boardの中身が書き換わる)ので注意
-  def __flipHori(self, x, y, color):
-    self.__index.flip(self.__lines[Config.HORI_OFFSET + y], x, color)
-  def __flipVert(self, x, y, color):
-    self.__index.flip(self.__lines[Config.VERT_OFFSET + x], y, color)
-  def __flipDiag045(self, x, y, color):
-    sum = x + y
-    if sum >= 2 and sum <= Config.CELL_NUM * 2 - 4:
-      self.__index.flip(self.__lines[Config.DIAG045_OFFSET + sum - 2], y - max(0, sum - Config.CELL_NUM + 1), color)
-  def __flipDiag135(self, x, y, color):
-    dif = y - x
-    if abs(dif) <= Config.CELL_NUM - 3:
-      self.__index.flip(self.__lines[Config.DIAG135_OFFSET + dif + Config.CELL_NUM - 3], y - max(0, dif), color)
+  # ==========================================================================================================
 
 
 class Player(object):
@@ -211,53 +252,78 @@ class Player(object):
 class AI(Player):
   def __init__(self, board, color):
     super(AI, self).__init__(board, color)
+    #self.__transpositionTable = None
+    self.__turnCounter = color
 
   def __str__(self):
     return "AI"
 
-  # <概要> 現盤面で打てる位置に対してそれぞれNegaMax関数を呼び出し,
-  #        その値が最大となる位置を返す
+  # <概要> 現盤面で打てる位置に対してそれぞれ評価関数を呼び出し,
+  #        その値が最大となる位置を返す.
   def __evaluate(self):
+    #self.__transpositionTable = {}  # 置換表を空に
     placeableCells = self.board.placeableCells(self.color)
     maxValue = -Config.INF
-    placedCell = None
     for placeableCell in placeableCells:
-      boardCpy = copy.deepcopy(self.board)
-      boardCpy.put(placeableCell.x, placeableCell.y, self.color)
-      value = -self.__negaMax(boardCpy, not color, 1)
+      value = self.__evalateCell(placeableCell) # cellを評価
       if value > maxValue:
         maxValue = value
-        placedCell = placeableCell
-    return [placedCell.x, placedCell.y]
+        res = placeableCell
+    return (res.x, res.y)
 
-  # <概要> http://uguisu.skr.jp/othello/minimax.html
-  # <引数> board:Board型, color:int(0~1), depth:(1~MAX_SEARCH_DEPTH)
+  # <概要> 与えられたcellに駒を置いた場合の評価値を返す
+  #        序盤中盤終盤ごとに評価関数を割当てている
+  def __evalateCell(self, cell):
+    statesCpy = self.board.getStates()  # 盤面コピー
+    if self.__turnCounter < Config.MIDDLE_PHASE: # 序盤
+      self.board.put(cell.x, cell.y, self.color)
+      res = -self.__alphaBeta(not self.color, Config.MAX_SEARCH_HEIGHT, -Config.INF, Config.INF)
+    elif Config.MIDDLE_PHASE <= self.__turnCounter < Config.LAST_PHASE:  # 中盤
+      self.board.put(cell.x, cell.y, self.color)
+      res = -self.__alphaBeta(not self.color, Config.MAX_SEARCH_HEIGHT, -Config.INF, Config.INF)
+    else: # 終盤
+      self.board.put(cell.x, cell.y, self.color)
+      res = -self.__alphaBeta(not self.color, Config.MAX_SEARCH_HEIGHT, -Config.INF, Config.INF)
+    self.board.restoreStates(statesCpy)
+    return res
+
+  # <概要> http://uguisu.skr.jp/othello/alpha-beta.html
+  # <引数> board:Board型, color:int(0~1), height:(1~MAX_SEARCH_HEIGHT), alpha:int, beta:int
   # <返値> int
-  # <詳細> boardの深いコピーをとっている
-  def __negaMax(self, board, color, depth):
-    if depth == Config.MAX_SEARCH_DEPTH:
-      return self.__evaluateLeaf(board, color)
-    maxValue = -Config.INF
-    for placeableCell in board.placeableCells(color):
-      boardCpy = copy.deepcopy(board)
-      boardCpy.put(placeableCell.x, placeableCell.y, color)
-      value = -self.__negaMax(boardCpy, not color, depth + 1)
-      maxValue = max(maxValue, value)
-    return maxValue
+  def __alphaBeta(self, color, height, alpha, beta):
+    if not height: # 設定した深さまでたどり着いたら再帰終了
+      return self.__evaluateLeaf(color)
+    placeableCells = self.board.placeableCells(color)
+    if not len(placeableCells):  # パス発生or試合終了でも再帰終了
+      return self.__evaluateLeaf(color)
+    statesCpy = self.board.getStates()
+    #key = tuple(statesCpy)
+    #if key in self.__transpositionTable:
+    #  return self.__transpositionTable[key]
+    for placeableCell in placeableCells:
+      self.board.put(placeableCell.x, placeableCell.y, color)
+      alpha = max(alpha, -self.__alphaBeta(not color, height - 1, -beta, -alpha))
+      if alpha >= beta:
+        return alpha  # カット
+      self.board.restoreStates(statesCpy)
+    #self.__transpositionTable[key] = alpha
+    return alpha
 
-  # <概要> 現盤面での駒の差を返す(仮)
-  def __evaluateLeaf(self, board, color):
+  # <概要> てきとーに http://uguisu.skr.jp/othello/5-1.html の重み付け
+  def __evaluateLeaf(self, color):
     res = 0
-    for cell in board.board:
+    for cell, weight in zip(self.board.board, Config.WEIGHTS):
       if cell.state == color:
-        res += 1
+        res += weight
       elif cell.state == (not color):
-        res -= 1
+        res -= weight
     return res
 
   def takeTurn(self):
     x, y = self.__evaluate()
     self.board.put(x, y, self.color)  # 位置(xpos,ypos)に駒を置く
+    self.board.modifyEmptyCells(x, y)
+    self.__turnCounter += 2
   
 
 class You(Player):
@@ -278,6 +344,7 @@ class You(Player):
           if self.board.placeable(xpos, ypos, self.color):
             self.board.storeStates()   # boardの要素のstateを書き換える前に,各stateを保存する
             self.board.put(xpos, ypos, self.color)  # 位置(xpos,ypos)に駒を置く
+            self.board.modifyEmptyCells(xpos, ypos)
             return
           else:
             print "ERROR: You cannot put here."   # クリック地点が置けない場所ならループ継続
