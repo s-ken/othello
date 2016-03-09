@@ -9,6 +9,7 @@ import pygame
 from pygame.locals import *
 import sys
 import index
+import book
 
 class Cell:
   BLACK = 0
@@ -327,7 +328,7 @@ class AI(Player):
     return cells
 
   def takeTurn(self):
-    if self.openingBook.isValid():
+    if self.openingBook.isValid():  # 現状定石通りのゲーム進行なら...
       x, y = self.openingBook.readBook()
     else:
       x, y = self.__evaluate()
@@ -355,7 +356,8 @@ class You(Player):
             self.board.storeStates()   # boardの要素のstateを書き換える前に,各stateを保存する
             self.board.put(xpos, ypos, self.color)  # 位置(xpos,ypos)に駒を置く
             self.board.modifyEmptyCells(xpos, ypos)
-            self.openingBook.proceed(xpos, ypos)  # 定石通りかどうかチェック
+            if self.openingBook.isValid():
+              self.openingBook.proceed(xpos, ypos)  # 定石通りかどうかチェック
             return
           else:
             print "ERROR: You cannot put here."   # クリック地点が置けない場所ならループ継続
@@ -364,55 +366,19 @@ class You(Player):
 class UndoRequest(Exception):
   def __init__(self): 0
 
-# =================================== OpeningBook 関連 ===================================
-# OpeningBookの実体である木構造のNode
-class Node: # TODO
+
+class TranspositionTable:
   def __init__(self):
-    self.child = {} # key=位置,val=Nodeの辞書型?
+    self.__table = [[0, 0] for i in range(Config.TABLE_SIZE)]  # 窓幅を格納(min, max)
 
+  @classmethod
+  def __hash(self, board):
+    res = 0
+    for i, cell in enumerate(board.board):
+      res += (cell.state * 3 ** (i % Config.CELL_NUM)) * 17 ** (i / Config.CELL_NUM)
+      res %= Config.TABLE_SIZE
+    return res
 
-class OpeningBook:
-  def __init__(self):
-    self.__currentNode = self.__initBook() # 木のroot
-    self.__valid = True   # 定石通り進行中かどうか判定用のflag
-
-  # <概要> file入力からOpeningBookを構築する
-  def __initBook(self): # TODO
-    root = Node()
-    node = self.__addChild(root, self.__pos2key(2, 3))  # (2,3)に黒
-    self.__addChild(node, self.__pos2key(2, 2))         # (2,2)に白
-    return root
-
-  def __pos2key(self, x, y):
-    return x + y * Config.CELL_NUM
-
-  def __key2pos(self, key):
-    return (key % Config.CELL_NUM, key / Config.CELL_NUM)
-
-  # <概要> nodeに子nodeを追加
-  def __addChild(self, node, key):
-    node.child[key] = Node()
-    return node.child[key]
-
-  # <概要> 相手(You)が定石通りにコマを置いているか判定しながらbookを読み進める
-  # <引数> x:int, y:int
-  def proceed(self, x, y):
-    key = self.__pos2key(x, y)
-    if key in self.__currentNode.child:
-      self.__currentNode = self.__currentNode.child[key]  # 相手(You)が定石通り(bookに載ってるパターン)に打ってきたら先に進む
-    else:
-      self.__valid = False  # 相手(You)が定石から外れたらOpenBookを捨てて次のphaseへ
-
-  # <概要> bookを読んでコマを置くべき位置を得る
-  def readBook(self):
-    return self.__key2pos(self.__currentNode.child.keys()[0]) # 候補の一番目を返す(仮)
-
-  # <概要> 現状定石通りかどうかの真偽値を返す
-  def isValid(self):
-    return self.__valid
-
-# ======================================================================================
-    
 
 class Game:
   def __init__(self):
@@ -421,7 +387,7 @@ class Game:
     self.__board      = Board(self.__screen)
     self.__turn       = Cell.BLACK
     self.__passedFlag = False
-    self.__openingBook = OpeningBook()
+    self.__openingBook = book.OpeningBook()
     self.__player     = [None] * 2
     self.__player[Config.AI_COLOR]      = AI(self.__board, Config.AI_COLOR, self.__openingBook)
     self.__player[not Config.AI_COLOR]  = You(self.__board, not Config.AI_COLOR, self.__openingBook)
