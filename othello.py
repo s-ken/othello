@@ -254,16 +254,55 @@ class Player(object):
 class AI(Player):
   def __init__(self, board, color, openingBook):
     super(AI, self).__init__(board, color, openingBook)
-    #self.__transpositionTable = None
-    self.__turnCounter = color
+    self.__brain = BookBrain(board, color, openingBook)
+    self.__middleBrain  = AlphaBetaBrain(board, color)
+    self.__endBrain     = AlphaBetaBrain(board, color)
 
   def __str__(self):
     return "AI"
 
+  def takeTurn(self):
+    if not self.__brain.isValid():
+      self.__changeBrain()
+    x, y = self.__brain.evaluate()
+    self.board.put(x, y, self.color)  # 位置(x,y)に駒を置く
+    self.board.modifyEmptyCells(x, y) # 空マスリストの更新
+
+  def __changeBrain(self):
+    if self.__brain is self.__middleBrain:
+      self.__brain = self.__endBrain
+    else:
+      self.__brain = self.__middleBrain
+
+
+class Brain(object):
+  def __init__(self, board, color):
+    self.board = board  # boardへの参照
+    self.color = color  # 自分の色
+  def evaluate(self): 0
+  def isValid(self):  0
+     
+
+class BookBrain(Brain):
+  def __init__(self, board, color, openingBook):
+    super(BookBrain, self).__init__(board, color)
+    self.__openingBook = openingBook
+
+  # <概要> OpeningBookを参照して次の手を返す
+  def evaluate(self):
+    return self.__openingBook.readBook()
+
+  def isValid(self):
+    return self.__openingBook.isValid()
+
+
+class AlphaBetaBrain(Brain):
+  def __init__(self, board, color):
+    super(AlphaBetaBrain, self).__init__(board, color)
+
   # <概要> 現盤面で打てる位置に対してそれぞれ評価関数を呼び出し,
   #        その値が最大となる位置を返す.
-  def __evaluate(self):
-    #self.__transpositionTable = {}  # 置換表を空に
+  def evaluate(self):
     placeableCells = self.board.placeableCells(self.color)
     maxValue = -Config.INF
     for placeableCell in placeableCells:
@@ -273,19 +312,15 @@ class AI(Player):
         res = placeableCell
     return (res.x, res.y)
 
+  def isValid(self):  # TODO
+    return True
+
   # <概要> 与えられたcellに駒を置いた場合の評価値を返す
   #        序盤中盤終盤ごとに評価関数を割当てている
   def __evalateCell(self, cell):
     statesCpy = self.board.getStates()  # 盤面コピー
-    if self.__turnCounter < Config.MIDDLE_PHASE: # 序盤
-      self.board.put(cell.x, cell.y, self.color)
-      res = -self.__alphaBeta(not self.color, Config.MAX_SEARCH_HEIGHT, -Config.INF, Config.INF)
-    elif Config.MIDDLE_PHASE <= self.__turnCounter < Config.LAST_PHASE:  # 中盤
-      self.board.put(cell.x, cell.y, self.color)
-      res = -self.__alphaBeta(not self.color, Config.MAX_SEARCH_HEIGHT, -Config.INF, Config.INF)
-    else: # 終盤
-      self.board.put(cell.x, cell.y, self.color)
-      res = -self.__alphaBeta(not self.color, Config.MAX_SEARCH_HEIGHT, -Config.INF, Config.INF)
+    self.board.put(cell.x, cell.y, self.color)
+    res = -self.__alphaBeta(not self.color, Config.MAX_SEARCH_HEIGHT, -Config.INF, Config.INF)
     self.board.restoreStates(statesCpy)
     return res
 
@@ -298,18 +333,14 @@ class AI(Player):
     placeableCells = self.board.placeableCells(color)
     if not len(placeableCells):  # パス発生or試合終了でも再帰終了
       return self.__evaluateLeaf(color)
-    placeableCells = self.__moveOrdering(placeableCells)
+    placeableCells = self.__moveOrdering(placeableCells, color)
     statesCpy = self.board.getStates()
-    #key = tuple(statesCpy)
-    #if key in self.__transpositionTable:
-    #  return self.__transpositionTable[key]
     for placeableCell in placeableCells:
       self.board.put(placeableCell.x, placeableCell.y, color)
       alpha = max(alpha, -self.__alphaBeta(not color, height - 1, -beta, -alpha))
       if alpha >= beta:
         return alpha  # カット
       self.board.restoreStates(statesCpy)
-    #self.__transpositionTable[key] = alpha
     return alpha
 
   # <概要> てきとーに http://uguisu.skr.jp/othello/5-1.html の重み付け
@@ -324,17 +355,18 @@ class AI(Player):
 
   # <概要> 与えられた次手候補cellリストを評価値の見込みが高い順にソートする
   #        これによってゲーム木探索中の枝刈り回数を増加させる
-  def __moveOrdering(self, cells):  # TODO
-    return cells
+  def __moveOrdering(self, cells, color):  # TODO
+    statesCpy = self.board.getStates()
+    values = [None] * len(cells)
+    for i, cell in enumerate(cells):
+      self.board.put(cell.x, cell.y, color)
+      values[i] = - self.__evaluateLeaf(not color)
+      self.board.restoreStates(statesCpy)
+    res = []
+    for value, cell in sorted(zip(values, cells), reverse = True):
+      res += [cell]
+    return res
 
-  def takeTurn(self):
-    if self.openingBook.isValid():  # 現状定石通りのゲーム進行なら...
-      x, y = self.openingBook.readBook()
-    else:
-      x, y = self.__evaluate()
-    self.board.put(x, y, self.color)  # 位置(xpos,ypos)に駒を置く
-    self.board.modifyEmptyCells(x, y)
-    self.__turnCounter += 2
   
 
 class You(Player):
@@ -367,9 +399,16 @@ class UndoRequest(Exception):
   def __init__(self): 0
 
 
-class TranspositionTable:
+class TranspositionTable: # TODO
+  
+  class Element:
+    def __init__(self):
+      self.indexes = [None] * Config.CELL_NUM
+      self.alpha = None
+      self.beta = None
+
   def __init__(self):
-    self.__table = [[0, 0] for i in range(Config.TABLE_SIZE)]  # 窓幅を格納(min, max)
+    self.__table = [Element() for i in range(Config.TABLE_SIZE)]  # 窓幅を格納(min, max)
 
   @classmethod
   def __hash(self, board):
@@ -387,8 +426,8 @@ class Game:
     self.__board      = Board(self.__screen)
     self.__turn       = Cell.BLACK
     self.__passedFlag = False
-    self.__openingBook = book.OpeningBook()
     self.__player     = [None] * 2
+    self.__openingBook = book.OpeningBook()
     self.__player[Config.AI_COLOR]      = AI(self.__board, Config.AI_COLOR, self.__openingBook)
     self.__player[not Config.AI_COLOR]  = You(self.__board, not Config.AI_COLOR, self.__openingBook)
     self.__screen.fill((0,0,0))

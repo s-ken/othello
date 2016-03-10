@@ -42,6 +42,10 @@ class OpeningBook:
     parentNode.child[key] = OpeningBook.Node()
     return parentNode.child[key]
 
+  def __checkCurrentNode(self):
+    if not len(self.__currentNode.child):
+        self.__valid = False  # 葉Nodeに到達
+
   # <概要> 相手(You)が定石通りにコマを置いているか判定しながらbookを読み進める
   #        この関数は,YouクラスのtakeTurn()内でboard.put()が呼ばれた後に実行される
   # <引数> x:int, y:int
@@ -49,8 +53,7 @@ class OpeningBook:
     key = self.__pos2key(x, y)
     if key in self.__currentNode.child:
       self.__currentNode = self.__currentNode.child[key]  # 相手(You)が定石通り(bookに載ってるパターン)に打ってきたら先に進む
-      if not len(self.__currentNode.child):
-        self.__valid = False  # 葉Nodeに到達
+      self.__checkCurrentNode()
     else:
       self.__valid = False  # 相手(You)が定石から外れたらOpenBookを捨てて次のphaseへ
 
@@ -58,6 +61,7 @@ class OpeningBook:
   def readBook(self):
     key = self.__currentNode.child.keys()[0]
     self.__currentNode = self.__currentNode.child[key]
+    self.__checkCurrentNode()
     return self.__key2pos(key) # 候補の一番目を返す(仮)
 
   # <概要> 現状定石通りかどうかの真偽値を返す
