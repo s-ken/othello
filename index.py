@@ -2,28 +2,11 @@
 
 import othello
 
-# matrix[code][x].fliped[color] = (-a, b) :
-#   a = codeに符号化されるマス列の位置xにcolor色の駒を置いたときに裏返る負(左?)方向の駒の数
-#   b = codeに符号化されるマス列の位置xにcolor色の駒を置いたときに裏返る正(右?)方向の駒の数
-# matrix[code][x].takes[color] :
-#   codeに符号化されるマス列の位置xにcolor色の駒を置いたときに裏返る駒の数
-# matrix[code][x].putCode[color] :
-#   codeに符号化されるマス列の位置xにcolor色の駒を置いたあとのマス列を符号化した値
-# matrix[code][x].flipCode :
-#   codeに符号化されるマス列の位置xの駒が裏返ったあとのマス列を符号化した値
-
 class Index:
-
-  class Element:
-    def __init__(self):
-      self.fliped = [None, None]
-      self.takes = [0, 0]
-      self.putCode = [None, None]
-      self.flipCode = None
-
+  
   def __init__(self):
     PATTERNS_NUM = 3 ** 8
-    self.__matrix = [[Index.Element() for i in range(8)] for j in range(PATTERNS_NUM)]
+    self.__matrix = [[[ [[0,0],[0,0]], [0, 0], [0, 0], 0 ] for j in range(8)] for i in range(PATTERNS_NUM)]
     for code in range(PATTERNS_NUM):
       self.__initRow(code)
 
@@ -48,13 +31,13 @@ class Index:
           flipedLine[x - i - 1] = color
         for i in range(takesRight):
           flipedLine[x + i + 1] = color
-        self.__matrix[code][x].fliped[color]  = (-takesLeft, takesRight)
-        self.__matrix[code][x].takes[color]   = takesLeft + takesRight
-        self.__matrix[code][x].putCode[color] = Index.__encode(flipedLine)
+        self.__matrix[code][x][0][color] = (-takesLeft, takesRight)
+        self.__matrix[code][x][1][color] = takesLeft + takesRight
+        self.__matrix[code][x][2][color] = Index.__encode(flipedLine)
     else:
       flipedLine = list(line)
       flipedLine[x] = not flipedLine[x]
-      self.__matrix[code][x].flipCode = Index.__encode(flipedLine)
+      self.__matrix[code][x][3] = Index.__encode(flipedLine)
 
   # <概要> デコード結果を返す
   # <引数> code:int(0~6560)
@@ -96,13 +79,13 @@ class Index:
 
   # <概要> codeに符号化されるマス列の位置xにcolor色の駒を置いたときに裏返る駒の数を返す
   def takes(self, code, x, color):
-    return self.__matrix[code][x].takes[color]
+    return self.__matrix[code][x][1][color]
 
   # <概要> codeに符号化されるマス列の位置xにcolor色の駒を置いたあとのマス列を符号化した値と,
   #        codeに符号化されるマス列の位置xにcolor色の駒を置いたときに裏返る左右それぞれの駒の数を返す
   def flipLine(self, code, x, color):
-    return (self.__matrix[code][x].putCode[color], self.__matrix[code][x].fliped[color])
+    return (self.__matrix[code][x][2][color], self.__matrix[code][x][0][color])
 
   # <概要> codeに符号化されるマス列の位置xの駒が裏返ったあとのマス列を符号化した値を返す
   def flipCell(self, code, x):
-    return self.__matrix[code][x].flipCode
+    return self.__matrix[code][x][3]

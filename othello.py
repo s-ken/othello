@@ -21,7 +21,7 @@ class Config:
   WINDOW_WIDTH  = CELL_WIDTH * CELL_NUM
   WPOS          = CELL_WIDTH * (CELL_NUM - 1)
   AI_COLOR      = WHITE
-  MAX_SEARCH_HEIGHT = 4 # ゲーム木の高さ
+  MAX_SEARCH_HEIGHT = 6 # ゲーム木の高さ
   INF = 1 << 15
   WEIGHTS = (  30, -12,  0, -1, -1,  0, -12,  30,
               -12, -15, -3, -3, -3, -3, -15, -12,
@@ -33,7 +33,9 @@ class Config:
                30, -12,  0, -1, -1,  0, -12,  30
             )
   MIDDLE_PHASE = 20
-  LAST_PHASE = 40
+  LAST_PHASE   = 40
+  TABLE_SIZE   = 65537
+  CHAIN_LENGTH = 2
 
 class Player(object):
   def __init__(self, board, color, openingBook):
@@ -95,10 +97,15 @@ class BookBrain(Brain):
 class AlphaBetaBrain(Brain):
   def __init__(self, board, color):
     super(AlphaBetaBrain, self).__init__(board, color)
+    self.__valid = True
+    self.cutCounter = 0
+    self.__transpositionTable = None
 
   # <概要> 現盤面で打てる位置に対してそれぞれ評価関数を呼び出し,
   #        その値が最大となる位置を返す.
   def evaluate(self):
+    self.cutCounter = 0
+    self.__transpositionTable = TranspositionTable()
     placeableCells = self.board.placeableCells(self.color)
     maxValue = -Config.INF
     for placeableCell in placeableCells:
@@ -106,38 +113,80 @@ class AlphaBetaBrain(Brain):
       if value > maxValue:
         maxValue = value
         res = placeableCell
+    print "cut:",self.cutCounter
+    print "col:",self.__transpositionTable.collision
     return res
 
   def isValid(self):  # TODO
-    return True
+    return self.__valid
 
   # <概要> 与えられたcellに駒を置いた場合の評価値を返す
   #        序盤中盤終盤ごとに評価関数を割当てている
   def __evalateCell(self, cellPos):
     statesCpy = list(self.board.board)  # 盤面コピー
     self.board.put(cellPos, self.color)
-    res = -self.__alphaBeta(not self.color, Config.MAX_SEARCH_HEIGHT, -Config.INF, Config.INF)
+    res = -self.__alphaBeta(not self.color, Config.MAX_SEARCH_HEIGHT, -Config.INF, Config.INF, False)
     self.board.board = list(statesCpy)
     return res
 
   # <概要> http://uguisu.skr.jp/othello/alpha-beta.html
   # <引数> board:Board型, color:int(0~1), height:(1~MAX_SEARCH_HEIGHT), alpha:int, beta:int
   # <返値> int
-  def __alphaBeta(self, color, height, alpha, beta):
+  def __alphaBeta(self, color, height, alpha, beta, passed):
     if not height: # 設定した深さまでたどり着いたら再帰終了
       return self.__evaluateLeaf(color)
     placeableCells = self.board.placeableCells(color)
-    if not len(placeableCells):  # パス発生or試合終了でも再帰終了
-      return self.__evaluateLeaf(color)
+    if not len(placeableCells):
+      if passed:
+        self.__valid = False
+        return self.__evaluateLeaf(color) # ゲーム終了
+      return -self.__alphaBeta(not color, height, -beta, -alpha, True)  # パス
     #placeableCells = self.__moveOrdering(placeableCells, color)
     statesCpy = list(self.board.board)  # 盤面コピー
-    for placeableCell in placeableCells:
-      self.board.put(placeableCell, color)
-      alpha = max(alpha, -self.__alphaBeta(not color, height - 1, -beta, -alpha))
-      if alpha >= beta:
-        return alpha  # カット
-      self.board.board = list(statesCpy)
-    return alpha
+    maxValue = -Config.INF
+    a = alpha
+    if height > 3:
+      found, key, i, alphaBeta = self.__transpositionTable.refer(self.board.board, (alpha, beta))
+      if found:
+        if alphaBeta[1] <= alpha:
+          self.cutCounter += 1
+          return alphaBeta[1]
+        if alphaBeta[0] >= beta:
+          self.cutCounter += 1
+          return alphaBeta[0]
+        if alphaBeta[0] == alphaBeta[1]:
+          self.cutCounter += 1
+          return alphaBeta[1]
+        alpha = max(alpha, alphaBeta[0])
+        beta  = min(beta,  alphaBeta[1])
+      for placeableCell in placeableCells:
+        self.board.put(placeableCell, color)
+        value = -self.__alphaBeta(not color, height - 1, -beta, -a, False)
+        self.board.board = list(statesCpy)
+        if value >= beta:
+          self.cutCounter += 1
+          self.__transpositionTable.store(key, i, (value, Config.INF))
+          return value  # カット
+        if value > maxValue:
+          a = max(a, value)
+          maxValue = value
+      if maxValue > alpha:
+        self.__transpositionTable.store(key, i, (maxValue, maxValue))
+      else:
+        self.__transpositionTable.store(key, i, (-Config.INF, maxValue))
+      return maxValue
+    else:
+      for placeableCell in placeableCells:
+        self.board.put(placeableCell, color)
+        value = -self.__alphaBeta(not color, height - 1, -beta, -a, False)
+        self.board.board = list(statesCpy)
+        if value >= beta:
+          self.cutCounter += 1
+          return value  # カット
+        if value > maxValue:
+          a = max(a, value)
+          maxValue = value
+      return maxValue
 
   # <概要> てきとーに http://uguisu.skr.jp/othello/5-1.html の重み付け
   def __evaluateLeaf(self, color):
@@ -152,21 +201,19 @@ class AlphaBetaBrain(Brain):
           res -= Config.WEIGHTS[x + (y << 3)]
     return res
 
-  """ TODO
   # <概要> 与えられた次手候補cellリストを評価値の見込みが高い順にソートする
   #        これによってゲーム木探索中の枝刈り回数を増加させる
-  def __moveOrdering(self, cells, color):  # TODO
-    statesCpy = self.board.getStates()
-    values = [None] * len(cells)
-    for i, cell in enumerate(cells):
-      self.board.put(cell.x, cell.y, color)
+  def __moveOrdering(self, cellPosList, color):
+    statesCpy = list(self.board.board)  # 盤面コピー
+    values = [0] * len(cellPosList)
+    for i, pos in enumerate(cellPosList):
+      self.board.put(pos, color)
       values[i] = - self.__evaluateLeaf(not color)
-      self.board.restoreStates(statesCpy)
+      self.board.board = list(statesCpy)
     res = []
-    for value, cell in sorted(zip(values, cells), reverse = True):
-      res += [cell]
+    for value, pos in sorted(zip(values, cellPosList)):
+      res += [pos]
     return res
-  """
   
 
 class You(Player):
@@ -198,26 +245,44 @@ class You(Player):
 class UndoRequest(Exception):
   def __init__(self): 0
 
-"""
+
+# ============================== TranspositionTable ==============================
 class TranspositionTable: # TODO
-  
+
   class Element:
     def __init__(self):
       self.indexes = [None] * Config.CELL_NUM
-      self.alpha = None
-      self.beta = None
+      self.alphaBeta = None   # タプル
 
   def __init__(self):
-    self.__table = [Element() for i in range(Config.TABLE_SIZE)]  # 窓幅を格納(min, max)
+    self.__table = [[TranspositionTable.Element() for j in range(Config.CHAIN_LENGTH)] for i in range(Config.TABLE_SIZE)]
+    self.collision = 0
 
   @classmethod
-  def __hash(self, board):
+  def __hash(cls, board):
     res = 0
-    for i, cell in enumerate(board.board):
-      res += (cell.state * 3 ** (i % Config.CELL_NUM)) * 17 ** (i / Config.CELL_NUM)
-      res %= Config.TABLE_SIZE
-    return res
-"""
+    for i in range(8):
+      res += board[i] * (17 ** i)
+    return res % Config.TABLE_SIZE
+
+  def refer(self, board, alphaBeta):
+    key = TranspositionTable.__hash(board)
+    for i in range(Config.CHAIN_LENGTH):
+      if self.__table[key][i].alphaBeta is None:
+        self.__table[key][i].alphaBeta = alphaBeta
+        self.__table[key][i].indexes   = board[:8]
+        return (False, key, i, alphaBeta)
+      else:
+        if self.__table[key][i].indexes == board[:8]:  # 発見
+          return (True, key, i, self.__table[key][i].alphaBeta)
+    self.collision += 1
+    self.__table[key][Config.CHAIN_LENGTH-1].indexes   = board[:8]
+    self.__table[key][Config.CHAIN_LENGTH-1].alphaBeta = alphaBeta
+    return (False, key, Config.CHAIN_LENGTH-1, alphaBeta)
+
+  def store(self, key, i, alphaBeta):
+    self.__table[key][i].alphaBeta = alphaBeta
+# ================================================================================
 
 class Game:
   def __init__(self):
