@@ -3,21 +3,19 @@
 <b>動作環境：</b><br>
 Python2.7 + pygame
 
-<b>Cellクラス:</b><br>
-x, y  : セルの位置 (0~7, 0~7)<br>
-state : セルの状態 (WHITE / BLACK / EMPTY)<br>
-
 <b>Boardクラス：</b><br>
-board :　オセロの盤面の実体 (Cellが8*8=64個の1次元リスト)<br>
-at(x, y) : 盤面の2次元平面の位置(x, y)に対応するCellを返す<br>
-takes(x, y, color) : (x, y)の位置にcolor色のコマを置いた場合に取れる相手のコマの数を返す<br>
-put(x, y, color) : (x, y)の位置にcolor色のコマを置く->boardの各Cellのstateが書き換わる<br>
-placeable(x, y) : 位置(x, y)にコマを置けるか判定．TrueかFalseを返す<br>
-placeableCells() : コマを置くことができるセルのリストを返す<br>
+board : オセロの盤面の実体 (int(short?)型のインデックスが水平11個,垂直11個,斜め8*2=16個,合計38次元int(short?)型リスト)<br>
+...インデックスボードについての詳細は http://sealsoft.jp/thell/algorithm.html<br>
+at(x, y) : 盤面の2次元平面の位置(x, y)に対応するマスの状態(黒=0,白=1,空=2)を返す<br>
+takes(pos, color) : 位置pos(=x+y*8)にcolor色のコマを置いた場合に取れる相手のコマの数を返す<br>
+put(pos, color) : 位置posにcolor色のコマを置く->boardの関係するインデックスが書き換わる<br>
+placeable(pos) : 位置posにコマを置けるか判定．TrueかFalseを返す<br>
+placeableCells() : コマを置くことができるマスの位置(x+y*8)のリストを返す<br>
 
 <b>Indexクラス</b><br>
-takes(line, x, color) : Cell列であるlineに対してx番目の位置にcolor色のコマを置いた際に取れる相手のコマの数を返す<br>
-flip(line, x, color) : Cell列であるlineに対してx番目の位置にcolor色のコマを置いた際に裏返されるべきコマを裏返す(line内のCell.stateを直接書き換える)<br>
+takes(code, x, color) : codeに符号化されるマス列の位置xにcolor色の駒を置いたときに裏返る駒の数を返す<br>
+flipLine(code, x, color) : codeに符号化されるマス列の位置xにcolor色の駒を置いたあとのマス列を符号化した値と,codeに符号化されるマス列の位置xにcolor色の駒を置いたときに裏返る左右それぞれの駒の数のタプルを返す<br>
+flipCell(code, x) : codeに符号化されるマス列の位置xの駒が裏返ったあとのマス列を符号化した値を返す<br>
 
 <b>AIクラス</b><br>
 takeTurn() : evaluate()を実行してコマを置く<br>
@@ -26,7 +24,6 @@ __evaluateCell(cell) : 引数で与えられたCellにコマを置いたとき�
 __alphaBeta(color, height, alpha, beta) : AlphaBeta法による評価関数.(http://uguisu.skr.jp/othello/alpha-beta.html)<br>
 探索過程のBoard操作ではDeepCopyでなく各Cellのstateのコピーを採用している.(DeepCopyの場合,処理時間が非常に大きくなるため)<br>
 __evaluateLeaf(color) : 呼び出された時点のBoardの状態で,手番がcolorのときの盤面の評価値を返す.現時点では簡易的な重み付けによる実装にしてある(http://uguisu.skr.jp/othello/5-1.html)
-
 canPut() : コマを置ける場所があるかどうかを返す<br>
 
 <b>Youクラス</b><br>
