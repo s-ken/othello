@@ -64,7 +64,6 @@ class AI(Player):
       print "change"
     pos = self.__brain.evaluate()
     self.board.put(pos, self.color)  # 位置(x,y)に駒を置く
-    self.board.modifyEmptyCells(pos) # 空マスリストの更新
 
   def __changeBrain(self):
     if self.__brain is self.__middleBrain:
@@ -99,13 +98,13 @@ class AlphaBetaBrain(Brain):
     super(AlphaBetaBrain, self).__init__(board, color)
     self.__valid = True
     self.cutCounter = 0
-    self.__transpositionTable = None
+    #self.__transpositionTable = None
 
   # <概要> 現盤面で打てる位置に対してそれぞれ評価関数を呼び出し,
   #        その値が最大となる位置を返す.
   def evaluate(self):
     self.cutCounter = 0
-    self.__transpositionTable = TranspositionTable()
+    #self.__transpositionTable = TranspositionTable()
     placeableCells = self.board.placeableCells(self.color)
     maxValue = -Config.INF
     for placeableCell in placeableCells:
@@ -114,7 +113,7 @@ class AlphaBetaBrain(Brain):
         maxValue = value
         res = placeableCell
     print "cut:",self.cutCounter
-    print "col:",self.__transpositionTable.collision
+    #print "col:",self.__transpositionTable.collision
     return res
 
   def isValid(self):  # TODO
@@ -209,11 +208,8 @@ class AlphaBetaBrain(Brain):
   def __evaluateLeaf(self, color):
     res = 0
     for y in range(8):
-      code = self.board.board[y]
       for x in range(8)[::-1]:
-        tmp = 3 ** x
-        state = code / tmp
-        code %= tmp
+        state = self.board.at(x, y)
         if state == color:
           res += Config.WEIGHTS[x + (y << 3)]
         elif state == (not color):
@@ -282,6 +278,7 @@ class EndBrain(Brain):
     stateCpy = self.board.getState()  # 盤面コピー
     maxValue = -Config.INF
     a = alpha
+    """
     if height > 3:
       found, key, i, alphaBeta = self.__transpositionTable.refer(self.board.board, (alpha, beta))
       if found:
@@ -324,14 +321,25 @@ class EndBrain(Brain):
           a = max(a, value)
           maxValue = value
       return maxValue
+      """
+    for placeableCell in placeableCells:
+      self.board.put(placeableCell, color)
+      value = -self.__alphaBeta(not color, height - 1, -beta, -a, False)
+      self.board.restoreState(stateCpy)
+      if value >= beta:
+        self.cutCounter += 1
+        return value  # カット
+      if value > maxValue:
+        a = max(a, value)
+        maxValue = value
+    return maxValue
 
   # <概要> てきとーに http://uguisu.skr.jp/othello/5-1.html の重み付け
   def __evaluateLeaf(self, color):
     res = 0
     for y in range(8):
-      code = self.board.board[y]
       for x in range(8)[::-1]:
-        state = code / 3 ** x
+        state = self.board.at(x, y)
         if state == color:
           res += 1
         elif state == (not color):
@@ -356,7 +364,6 @@ class You(Player):
           if self.board.placeable(xpos + ypos * Config.CELL_NUM, self.color):
             self.board.storeState()   # boardの要素のstateを書き換える前に,各stateを保存する
             self.board.put(xpos + ypos * Config.CELL_NUM, self.color)  # 位置(xpos,ypos)に駒を置く
-            self.board.modifyEmptyCells(xpos + ypos * Config.CELL_NUM)
             if self.openingBook.isValid():
               self.openingBook.proceed(xpos, ypos)  # 定石通りかどうかチェック
             return
@@ -367,7 +374,7 @@ class You(Player):
 class UndoRequest(Exception):
   def __init__(self): 0
 
-
+"""
 # ============================== TranspositionTable ==============================
 class TranspositionTable: # TODO
 
@@ -405,6 +412,7 @@ class TranspositionTable: # TODO
   def store(self, key, i, alphaBeta):
     self.__table[key][i].alphaBeta = alphaBeta
 # ================================================================================
+"""
 
 class Game:
   def __init__(self):
