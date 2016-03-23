@@ -11,7 +11,7 @@ import sys
 import board
 import book
 
-    
+
 class Config:
   BLACK         = 0
   WHITE         = 1
@@ -51,7 +51,7 @@ class AI(Player):
     super(AI, self).__init__(board, color, openingBook)
     self.__brain = BookBrain(board, color, openingBook)
     self.__middleBrain  = AlphaBetaBrain(board, color)
-    self.__endBrain     = AlphaBetaBrain(board, color)
+    self.__endBrain     = EndBrain(board, color)
 
   def __str__(self):
     return "AI"
@@ -59,6 +59,7 @@ class AI(Player):
   def takeTurn(self):
     if not self.__brain.isValid():
       self.__changeBrain()
+      print "change"
     pos = self.__brain.evaluate()
     self.board.put(pos, self.color)  # 位置(x,y)に駒を置く
     self.board.modifyEmptyCells(pos) # 空マスリストの更新
@@ -76,7 +77,6 @@ class Brain(object):
     self.color = color  # 自分の色
   def evaluate(self): 0
   def isValid(self):  0
-     
 
 class BookBrain(Brain):
   def __init__(self, board, color, openingBook):
@@ -95,6 +95,84 @@ class BookBrain(Brain):
 class AlphaBetaBrain(Brain):
   def __init__(self, board, color):
     super(AlphaBetaBrain, self).__init__(board, color)
+    self.__valid = True
+
+  # <概要> 現盤面で打てる位置に対してそれぞれ評価関数を呼び出し,
+  #        その値が最大となる位置を返す.
+  def evaluate(self):
+    placeableCells = self.board.placeableCells(self.color)
+    maxValue = -Config.INF
+    for placeableCell in placeableCells:
+      value = self.__evalateCell(placeableCell) # cellを評価
+      if value > maxValue:
+        maxValue = value
+        res = placeableCell
+    return res
+
+  def isValid(self):  # TODO
+    return self.__valid
+
+  # <概要> 与えられたcellに駒を置いた場合の評価値を返す
+  #        序盤中盤終盤ごとに評価関数を割当てている
+  def __evalateCell(self, cellPos):
+    statesCpy = list(self.board.board)  # 盤面コピー
+    self.board.put(cellPos, self.color)
+    res = -self.__alphaBeta(not self.color, Config.MAX_SEARCH_HEIGHT, -Config.INF, Config.INF)
+    self.board.board = list(statesCpy)
+    return res
+
+  # <概要> http://uguisu.skr.jp/othello/alpha-beta.html
+  # <引数> board:Board型, color:int(0~1), height:(1~MAX_SEARCH_HEIGHT), alpha:int, beta:int
+  # <返値> int
+  def __alphaBeta(self, color, height, alpha, beta):
+    if not height: # 設定した深さまでたどり着いたら再帰終了
+      return self.__evaluateLeaf(color)
+    placeableCells = self.board.placeableCells(color)
+    if not len(placeableCells):  # パス発生or試合終了でも再帰終了
+      self.__valid = False
+      return self.__evaluateLeaf(color)
+    #placeableCells = self.__moveOrdering(placeableCells, color)
+    statesCpy = list(self.board.board)  # 盤面コピー
+    for placeableCell in placeableCells:
+      self.board.put(placeableCell, color)
+      alpha = max(alpha, -self.__alphaBeta(not color, height - 1, -beta, -alpha))
+      if alpha >= beta:
+        return alpha  # カット
+      self.board.board = list(statesCpy)
+    return alpha
+
+  # <概要> てきとーに http://uguisu.skr.jp/othello/5-1.html の重み付け
+  def __evaluateLeaf(self, color):
+    res = 0
+    for y in range(8):
+      code = self.board.board[y]
+      for x in range(8)[::-1]:
+        state = code / 3 ** x
+        if state == color:
+          res += Config.WEIGHTS[x + (y << 3)]
+        elif state == (not color):
+          res -= Config.WEIGHTS[x + (y << 3)]
+    return res
+
+  """ TODO
+  # <概要> 与えられた次手候補cellリストを評価値の見込みが高い順にソートする
+  #        これによってゲーム木探索中の枝刈り回数を増加させる
+  def __moveOrdering(self, cells, color):  # TODO
+    statesCpy = self.board.getStates()
+    values = [None] * len(cells)
+    for i, cell in enumerate(cells):
+      self.board.put(cell.x, cell.y, color)
+      values[i] = - self.__evaluateLeaf(not color)
+      self.board.restoreStates(statesCpy)
+    res = []
+    for value, cell in sorted(zip(values, cells), reverse = True):
+      res += [cell]
+    return res
+  """
+
+class EndBrain(Brain):
+  def __init__(self, board, color):
+    super(EndBrain, self).__init__(board, color)
 
   # <概要> 現盤面で打てる位置に対してそれぞれ評価関数を呼び出し,
   #        その値が最大となる位置を返す.
@@ -147,27 +225,10 @@ class AlphaBetaBrain(Brain):
       for x in range(8)[::-1]:
         state = code / 3 ** x
         if state == color:
-          res += Config.WEIGHTS[x + (y << 3)]
+          res += 1
         elif state == (not color):
-          res -= Config.WEIGHTS[x + (y << 3)]
+          res -= 1
     return res
-
-  """ TODO
-  # <概要> 与えられた次手候補cellリストを評価値の見込みが高い順にソートする
-  #        これによってゲーム木探索中の枝刈り回数を増加させる
-  def __moveOrdering(self, cells, color):  # TODO
-    statesCpy = self.board.getStates()
-    values = [None] * len(cells)
-    for i, cell in enumerate(cells):
-      self.board.put(cell.x, cell.y, color)
-      values[i] = - self.__evaluateLeaf(not color)
-      self.board.restoreStates(statesCpy)
-    res = []
-    for value, cell in sorted(zip(values, cells), reverse = True):
-      res += [cell]
-    return res
-  """
-  
 
 class You(Player):
   def __init__(self, board, color, openingBook):
@@ -200,7 +261,7 @@ class UndoRequest(Exception):
 
 """
 class TranspositionTable: # TODO
-  
+
   class Element:
     def __init__(self):
       self.indexes = [None] * Config.CELL_NUM
@@ -238,14 +299,14 @@ class Game:
         except UndoRequest:
           self.__undo()
           continue
-      else:     
+      else:
         print self.__player[self.__turn%2], " passed."
         if self.__passedFlag:  # 二人ともパス->終了
           return
         self.__passedFlag = True
       self.__turn += 1
   def output(self):
-    self.__board.printResult()    
+    self.__board.printResult()
   def __undo(self):
     self.__board.loadStates()
 
