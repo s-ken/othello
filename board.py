@@ -17,7 +17,7 @@ class Board:
     self.__screen.fill((0,0,0))
     pygame.display.set_caption('Othello')
     pygame.mouse.set_visible(True)
-    self.board 	      = [6560] * 64
+    self.board 	      = [6560] * 38
     self.__emptyCells = range(othello.Config.CELL_NUM ** 2) # 空マスのインデックスリスト. placeableCells()で使用する
     self.__index      = index.Index()
     self.__referenceContainer = self.__initReferenceContainer() # サイズは64
@@ -127,11 +127,17 @@ class Board:
     return [cellPos for cellPos in self.__emptyCells if self.placeable(cellPos, color) ]
 
   # ==================== Undo 関連 =====================
-  def storeStates(self):
-    self.__prevStates = list(self.board)
+  def getState(self):
+    return list(self.board)
 
-  def loadStates(self):
-    self.board = self.__prevStates
+  def restoreState(self, state):
+    self.board = list(state)
+
+  def storeState(self):
+    self.__prevStates = self.getState()
+
+  def loadState(self):
+    self.restoreState(self.__prevStates)
   # ==================================================
 
   # <概要> 空マスリストの更新

@@ -123,10 +123,10 @@ class AlphaBetaBrain(Brain):
   # <概要> 与えられたcellに駒を置いた場合の評価値を返す
   #        序盤中盤終盤ごとに評価関数を割当てている
   def __evalateCell(self, cellPos):
-    statesCpy = list(self.board.board)  # 盤面コピー
+    stateCpy = self.board.getState()  # 盤面コピー
     self.board.put(cellPos, self.color)
     res = -self.__alphaBeta(not self.color, Config.MAX_SEARCH_HEIGHT, -Config.INF, Config.INF, False)
-    self.board.board = list(statesCpy)
+    self.board.restoreState(stateCpy)
     return res
 
   # <概要> http://uguisu.skr.jp/othello/alpha-beta.html
@@ -145,7 +145,7 @@ class AlphaBetaBrain(Brain):
       self.__valid = False
       return self.__evaluateLeaf(color)
     #placeableCells = self.__moveOrdering(placeableCells, color)
-    statesCpy = list(self.board.board)  # 盤面コピー
+    stateCpy = self.board.getState()  # 盤面コピー
     maxValue = -Config.INF
     a = alpha
     """
@@ -166,7 +166,7 @@ class AlphaBetaBrain(Brain):
       for placeableCell in placeableCells:
         self.board.put(placeableCell, color)
         value = -self.__alphaBeta(not color, height - 1, -beta, -a, False)
-        self.board.board = list(statesCpy)
+        self.board.restore(stateCpy)
         if value >= beta:
           self.cutCounter += 1
           self.__transpositionTable.store(key, i, (value, Config.INF))
@@ -183,7 +183,7 @@ class AlphaBetaBrain(Brain):
       for placeableCell in placeableCells:
         self.board.put(placeableCell, color)
         value = -self.__alphaBeta(not color, height - 1, -beta, -a, False)
-        self.board.board = list(statesCpy)
+        self.board.restoreState(stateCpy)
         if value >= beta:
           self.cutCounter += 1
           return value  # カット
@@ -195,7 +195,7 @@ class AlphaBetaBrain(Brain):
     for placeableCell in placeableCells:
       self.board.put(placeableCell, color)
       value = -self.__alphaBeta(not color, height - 1, -beta, -a, False)
-      self.board.board = list(statesCpy)
+      self.board.restoreState(stateCpy)
       if value >= beta:
         self.cutCounter += 1
         return value  # カット
@@ -223,12 +223,12 @@ class AlphaBetaBrain(Brain):
   # <概要> 与えられた次手候補cellリストを評価値の見込みが高い順にソートする
   #        これによってゲーム木探索中の枝刈り回数を増加させる
   def __moveOrdering(self, cellPosList, color):
-    statesCpy = list(self.board.board)  # 盤面コピー
+    stateCpy = self.board.getState()  # 盤面コピー
     values = [0] * len(cellPosList)
     for i, pos in enumerate(cellPosList):
       self.board.put(pos, color)
       values[i] = - self.__evaluateLeaf(not color)
-      self.board.board = list(statesCpy)
+      self.board.restoreState(stateCpy)
     res = []
     for value, pos in sorted(zip(values, cellPosList)):
       res += [pos]
@@ -257,10 +257,10 @@ class EndBrain(Brain):
   # <概要> 与えられたcellに駒を置いた場合の評価値を返す
   #        序盤中盤終盤ごとに評価関数を割当てている
   def __evalateCell(self, cellPos):
-    statesCpy = list(self.board.board)  # 盤面コピー
+    stateCpy = self.board.getState()  # 盤面コピー
     self.board.put(cellPos, self.color)
     res = -self.__alphaBeta(not self.color, Config.MAX_SEARCH_HEIGHT, -Config.INF, Config.INF, False)
-    self.board.board = list(statesCpy)
+    self.board.restoreState(stateCpy)
     return res
 
   # <概要> http://uguisu.skr.jp/othello/alpha-beta.html
@@ -279,7 +279,7 @@ class EndBrain(Brain):
       self.__valid = False
       return self.__evaluateLeaf(color)
     #placeableCells = self.__moveOrdering(placeableCells, color)
-    statesCpy = list(self.board.board)  # 盤面コピー
+    stateCpy = self.board.getState()  # 盤面コピー
     maxValue = -Config.INF
     a = alpha
     if height > 3:
@@ -299,7 +299,7 @@ class EndBrain(Brain):
       for placeableCell in placeableCells:
         self.board.put(placeableCell, color)
         value = -self.__alphaBeta(not color, height - 1, -beta, -a, False)
-        self.board.board = list(statesCpy)
+        self.board.restoreState(stateCpy)
         if value >= beta:
           self.cutCounter += 1
           self.__transpositionTable.store(key, i, (value, Config.INF))
@@ -316,7 +316,7 @@ class EndBrain(Brain):
       for placeableCell in placeableCells:
         self.board.put(placeableCell, color)
         value = -self.__alphaBeta(not color, height - 1, -beta, -a, False)
-        self.board.board = list(statesCpy)
+        self.board.restoreState(stateCpy)
         if value >= beta:
           self.cutCounter += 1
           return value  # カット
@@ -354,7 +354,7 @@ class You(Player):
           xpos = int(pygame.mouse.get_pos()[0]/Config.CELL_WIDTH)
           ypos = int(pygame.mouse.get_pos()[1]/Config.CELL_WIDTH)
           if self.board.placeable(xpos + ypos * Config.CELL_NUM, self.color):
-            self.board.storeStates()   # boardの要素のstateを書き換える前に,各stateを保存する
+            self.board.storeState()   # boardの要素のstateを書き換える前に,各stateを保存する
             self.board.put(xpos + ypos * Config.CELL_NUM, self.color)  # 位置(xpos,ypos)に駒を置く
             self.board.modifyEmptyCells(xpos + ypos * Config.CELL_NUM)
             if self.openingBook.isValid():
