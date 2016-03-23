@@ -47,7 +47,7 @@ class Board:
           self.__screen.blit(self.white_img, self.white_rect.move(xy))
     pygame.display.flip()
 
-  # <概要> 駒の数をプリントする 
+  # <概要> 駒の数をプリントする
   def printResult(self):
     counter = [0, 0]
     for x in range(othello.Config.CELL_NUM):
@@ -62,14 +62,14 @@ class Board:
   # <返値> int(0~6)
   def takes(self, pos, color):
     container = self.__referenceContainer[pos]
-    res = ( self.__index.takes(self.board[container[0][0]], container[0][1], color) 
+    res = ( self.__index.takes(self.board[container[0][0]], container[0][1], color)
           + self.__index.takes(self.board[container[1][0]], container[1][1], color) )
     if container[2][0] >= 0:
       res += self.__index.takes(self.board[container[2][0]], container[2][1], color)
     if container[3][0] >= 0:
       res += self.__index.takes(self.board[container[3][0]], container[3][1], color)
     return res
-  
+
   # <概要> 位置(x,y)にcolor色の駒を置いて相手の駒を裏返す
   # <引数> pos:int(0~63), color:int(0~2)
   def put(self, pos, color):
