@@ -1,5 +1,10 @@
 # -*- coding:utf-8 -*-
-
+# BitBoard : 
+# 2つの64bitの整数値で表現されたボード.
+# 盤面の処理をbit演算で実装できるため高速.
+# 詳しくは,
+# http://starlancer.org/~is2004/owiki/wiki.cgi?action=ATTACH&file=othello%2E12%2E1%2E2%2Eppt&page=%A4%CA%A4%F3%A4%C7%A4%E2%A5%BB%A5%DF%A5%CA%A1%BC
+# とか,Wikipediaとか.
 import pygame
 import othello
 
