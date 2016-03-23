@@ -21,8 +21,8 @@ class Config:
   WINDOW_WIDTH  = CELL_WIDTH * CELL_NUM
   WPOS          = CELL_WIDTH * (CELL_NUM - 1)
   AI_COLOR      = WHITE
-  MAX_SEARCH_HEIGHT = 6 # ゲーム木の高さ
-  INF = 1 << 15
+  MAX_SEARCH_HEIGHT = 5 # ゲーム木の高さ
+  INF = sys.maxint
   WEIGHTS = (  30, -12,  0, -1, -1,  0, -12,  30,
               -12, -15, -3, -3, -3, -3, -15, -12,
                 0,  -3,  0, -1, -1,  0,  -3,   0,
@@ -148,6 +148,7 @@ class AlphaBetaBrain(Brain):
     statesCpy = list(self.board.board)  # 盤面コピー
     maxValue = -Config.INF
     a = alpha
+    """
     if height > 3:
       found, key, i, alphaBeta = self.__transpositionTable.refer(self.board.board, (alpha, beta))
       if found:
@@ -190,6 +191,19 @@ class AlphaBetaBrain(Brain):
           a = max(a, value)
           maxValue = value
       return maxValue
+      """
+    for placeableCell in placeableCells:
+      self.board.put(placeableCell, color)
+      value = -self.__alphaBeta(not color, height - 1, -beta, -a, False)
+      self.board.board = list(statesCpy)
+      if value >= beta:
+        self.cutCounter += 1
+        return value  # カット
+      if value > maxValue:
+        a = max(a, value)
+        maxValue = value
+    return maxValue
+
 
   # <概要> てきとーに http://uguisu.skr.jp/othello/5-1.html の重み付け
   def __evaluateLeaf(self, color):
@@ -197,7 +211,9 @@ class AlphaBetaBrain(Brain):
     for y in range(8):
       code = self.board.board[y]
       for x in range(8)[::-1]:
-        state = code / 3 ** x
+        tmp = 3 ** x
+        state = code / tmp
+        code %= tmp
         if state == color:
           res += Config.WEIGHTS[x + (y << 3)]
         elif state == (not color):
@@ -243,28 +259,71 @@ class EndBrain(Brain):
   def __evalateCell(self, cellPos):
     statesCpy = list(self.board.board)  # 盤面コピー
     self.board.put(cellPos, self.color)
-    res = -self.__alphaBeta(not self.color, Config.MAX_SEARCH_HEIGHT, -Config.INF, Config.INF)
+    res = -self.__alphaBeta(not self.color, Config.MAX_SEARCH_HEIGHT, -Config.INF, Config.INF, False)
     self.board.board = list(statesCpy)
     return res
 
   # <概要> http://uguisu.skr.jp/othello/alpha-beta.html
   # <引数> board:Board型, color:int(0~1), height:(1~MAX_SEARCH_HEIGHT), alpha:int, beta:int
   # <返値> int
-  def __alphaBeta(self, color, height, alpha, beta):
+  def __alphaBeta(self, color, height, alpha, beta, passed):
     if not height: # 設定した深さまでたどり着いたら再帰終了
       return self.__evaluateLeaf(color)
     placeableCells = self.board.placeableCells(color)
+    if not len(placeableCells):
+      if passed:
+        self.__valid = False
+        return self.__evaluateLeaf(color) # ゲーム終了
+      return -self.__alphaBeta(not color, height, -beta, -alpha, True)  # パス
     if not len(placeableCells):  # パス発生or試合終了でも再帰終了
+      self.__valid = False
       return self.__evaluateLeaf(color)
     #placeableCells = self.__moveOrdering(placeableCells, color)
     statesCpy = list(self.board.board)  # 盤面コピー
-    for placeableCell in placeableCells:
-      self.board.put(placeableCell, color)
-      alpha = max(alpha, -self.__alphaBeta(not color, height - 1, -beta, -alpha))
-      if alpha >= beta:
-        return alpha  # カット
-      self.board.board = list(statesCpy)
-    return alpha
+    maxValue = -Config.INF
+    a = alpha
+    if height > 3:
+      found, key, i, alphaBeta = self.__transpositionTable.refer(self.board.board, (alpha, beta))
+      if found:
+        if alphaBeta[1] <= alpha:
+          self.cutCounter += 1
+          return alphaBeta[1]
+        if alphaBeta[0] >= beta:
+          self.cutCounter += 1
+          return alphaBeta[0]
+        if alphaBeta[0] == alphaBeta[1]:
+          self.cutCounter += 1
+          return alphaBeta[1]
+        alpha = max(alpha, alphaBeta[0])
+        beta  = min(beta,  alphaBeta[1])
+      for placeableCell in placeableCells:
+        self.board.put(placeableCell, color)
+        value = -self.__alphaBeta(not color, height - 1, -beta, -a, False)
+        self.board.board = list(statesCpy)
+        if value >= beta:
+          self.cutCounter += 1
+          self.__transpositionTable.store(key, i, (value, Config.INF))
+          return value  # カット
+        if value > maxValue:
+          a = max(a, value)
+          maxValue = value
+      if maxValue > alpha:
+        self.__transpositionTable.store(key, i, (maxValue, maxValue))
+      else:
+        self.__transpositionTable.store(key, i, (-Config.INF, maxValue))
+      return maxValue
+    else:
+      for placeableCell in placeableCells:
+        self.board.put(placeableCell, color)
+        value = -self.__alphaBeta(not color, height - 1, -beta, -a, False)
+        self.board.board = list(statesCpy)
+        if value >= beta:
+          self.cutCounter += 1
+          return value  # カット
+        if value > maxValue:
+          a = max(a, value)
+          maxValue = value
+      return maxValue
 
   # <概要> てきとーに http://uguisu.skr.jp/othello/5-1.html の重み付け
   def __evaluateLeaf(self, color):
