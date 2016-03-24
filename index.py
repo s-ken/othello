@@ -6,7 +6,11 @@ class Index:
   
   def __init__(self):
     PATTERNS_NUM = 3 ** 8
-    self.__matrix = [[[ [[0,0],[0,0]], [0, 0], [0, 0], 0 ] for j in range(8)] for i in range(PATTERNS_NUM)]
+    self.__matrix     = [[[ [[0,0],[0,0]], [0, 0], [0, 0], 0] for j in range(8)] for i in range(PATTERNS_NUM)]
+    self.__mobility   = [0 for i in range(PATTERNS_NUM)]
+    self.__settled    = [0 for i in range(PATTERNS_NUM)]
+    self.__difference = [0 for i in range(PATTERNS_NUM)]
+    self.__eval       = [[0 for i in range(PATTERNS_NUM)] for j in range(8)]
     for code in range(PATTERNS_NUM):
       self.__initRow(code)
 
@@ -16,6 +20,37 @@ class Index:
     line = Index.__decode(code)  # codeをデコード
     for x in range(8):
       self.__initElement(code, x, line)  # lineの位置xに駒を置くときの処理を計算する
+    for color in [0, 1]:
+      flag = True
+      for cell in line:
+        if cell == color:
+          if cell == 0:
+            self.__settled[code] += 1
+          else:
+            self.__settled[code] -= 1
+        else:
+          flag = False
+          break
+      for cell in line[::-1]:
+        if cell == color:
+          if cell == 0:
+            self.__settled[code] += 1
+          else:
+            self.__settled[code] -= 1
+        else:
+          break
+    for cell in line:
+      if cell == 0:
+        self.__difference[code] += 1
+      elif cell == 1:
+        self.__difference[code] -= 1
+    for i, cell in enumerate(line):
+      if cell == 0:
+        for j in range(8):
+          self.__eval[j][code] += othello.Config.WEIGHTS[j][i]
+      elif cell == 1:
+        for j in range(8):
+          self.__eval[j][code] -= othello.Config.WEIGHTS[j][i]
 
   # <概要> __matrix[i][j]を初期化する
   # <引数> i:int(0~6560), j:int(0~7), line:Cell型List[8]
@@ -31,9 +66,15 @@ class Index:
           flipedLine[x - i - 1] = color
         for i in range(takesRight):
           flipedLine[x + i + 1] = color
-        self.__matrix[code][x][0][color] = (-takesLeft, takesRight)
+        self.__matrix[code][x][0][color] = (takesLeft, takesRight)
         self.__matrix[code][x][1][color] = takesLeft + takesRight
         self.__matrix[code][x][2][color] = Index.__encode(flipedLine)
+        if takesLeft or takesRight:
+          if color:
+            self.__mobility[code] -= 1
+          else:
+            self.__mobility[code] += 1
+
     else:
       flipedLine = list(line)
       flipedLine[x] = not flipedLine[x]
@@ -87,5 +128,32 @@ class Index:
     return (self.__matrix[code][x][2][color], self.__matrix[code][x][0][color])
 
   # <概要> codeに符号化されるマス列の位置xの駒が裏返ったあとのマス列を符号化した値を返す
-  def flipCell(self, code, x):
+  def flipDisk(self, code, x):
     return self.__matrix[code][x][3]
+
+  # <概要> codeに符号化されるマス列に対してcolor色の駒を置くことのできる場所の数を返す
+  def getMobility(self, code, color):
+    if color:
+      return -self.__mobility[code]
+    else:
+      return self.__mobility[code]
+
+   # <概要> codeに符号化される端のマス列に対してcolor色の確定石数の近似値を返す
+  def getSettled(self, code, color):
+    if color:
+      return -self.__settled[code]
+    else:
+      return self.__settled[code]
+  # <概要> codeに符号化されるマス列に対して駒の差を返す
+  def getDifference(self, code, color):
+    if color:
+      return -self.__difference[code]
+    else:
+      return self.__difference[code]
+
+  # <概要> codeに符号化されるi番目の水平マス列に対して評価値を返す
+  def getEval(self, i, code, color):
+    if color:
+      return -self.__eval[i][code]
+    else:
+      return self.__eval[i][code]
