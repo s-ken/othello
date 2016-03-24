@@ -93,6 +93,13 @@ class Board:
 
   def placeableCells(self, color):
     return [cellPos for cellPos in self.__emptyCells if self.placeable[cellPos](color) ]
+  
+  def placeableCellsNum(self, color):
+    res = 0
+    for cellPos in self.__emptyCells:
+      if self.placeable[cellPos](color):
+        res += 1
+    return res
 
   # ==================== 評価関数関連 ====================
   def getEval(self, color):

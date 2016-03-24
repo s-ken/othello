@@ -21,14 +21,14 @@ class Config:
   CELL_NUM      = 8
   WINDOW_WIDTH  = CELL_WIDTH * CELL_NUM
   WPOS          = CELL_WIDTH * (CELL_NUM - 1)
-  AI_COLOR      = WHITE
+  AI_COLOR      = BLACK
   INF           = sys.maxint
   MIDDLE_PHASE  = 20
-  LAST_PHASE    = 48
+  LAST_PHASE    = 46
   TABLE_SIZE    = 65537
   CHAIN_LENGTH  = 2
   POW3          = [3 ** i for i in range(8)]
-  MAX_SEARCH_HEIGHT = 5 # 中盤ゲーム木の高さ
+  MID_HEIGHT    = 5 # 中盤ゲーム木の高さ
   WEIGHTS       = [ [ 30, -12,  0, -1, -1,  0, -12,  30],
                     [-12, -15, -3, -3, -3, -3, -15, -12],
                     [  0,  -3,  0, -1, -1,  0,  -3,   0],
@@ -47,7 +47,7 @@ class You():
     return len(self.board.placeableCells(self.color)) > 0
   def __str__(self):
     return "You"
-  def takeTurn(self):
+  def takeTurn(self, turnCounter): # turnCounterは使わない
     while 1:
       for event in pygame.event.get():
         if (event.type == KEYDOWN and event.key == K_ESCAPE):
@@ -74,7 +74,8 @@ class UndoRequest(Exception):
 class Game:
   def __init__(self):
     self.__board      = board.Board()
-    self.__turn       = Config.BLACK
+    self.__turn       = Config.BLACK # = 0
+    self.__turnCounter= 0
     self.__passedFlag = False
     self.__player     = [None] * 2
     self.__openingBook = book.OpeningBook()
@@ -83,13 +84,18 @@ class Game:
   def run(self):
     while 1:
       self.__board.printBoard(self.__turn%2)
+      if self.__turnCounter == 60:
+        break
       if self.__player[self.__turn%2].canPut():  # 置ける場所があればTrue
         try:
-          self.__player[self.__turn%2].takeTurn() # 俺のターン
+          print "Turn:", self.__turnCounter
+          self.__player[self.__turn%2].takeTurn(self.__turnCounter) # 俺のターン
           self.__passedFlag = False
         except UndoRequest:
           self.__undo()
+          self.__turnCounter -= 2
           continue
+        self.__turnCounter += 1
       else:
         print self.__player[self.__turn%2], " passed."
         if self.__passedFlag:  # 二人ともパス->終了
