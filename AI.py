@@ -3,7 +3,6 @@
 import othello
 import midGameBrain
 import endGameBrain
-#import transPositionTable # 使うとむしろ遅くなる
 import time
 
 class AI():

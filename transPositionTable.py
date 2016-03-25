@@ -6,7 +6,7 @@ class TranspositionTable: # TODO
 
   class Element:
     def __init__(self):
-      self.indexes = [None] * othello.Config.CELL_NUM
+      self.indexes = [None] * 8
       self.alphaBeta = None   # タプル
 
   def __init__(self):

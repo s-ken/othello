@@ -23,12 +23,11 @@ class Config:
   WPOS          = CELL_WIDTH * (CELL_NUM - 1)
   AI_COLOR      = BLACK
   INF           = sys.maxint
-  MIDDLE_PHASE  = 20
   LAST_PHASE    = 46
   TABLE_SIZE    = 65537
   CHAIN_LENGTH  = 2
   POW3          = [3 ** i for i in range(8)]
-  MID_HEIGHT    = 5 # 中盤ゲーム木の高さ
+  MID_HEIGHT    = 6 # 中盤ゲーム木の高さ
   WEIGHTS       = [ [ 30, -12,  0, -1, -1,  0, -12,  30],
                     [-12, -15, -3, -3, -3, -3, -15, -12],
                     [  0,  -3,  0, -1, -1,  0,  -3,   0],

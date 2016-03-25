@@ -38,6 +38,14 @@ class Board:
                         self.placeable40,self.placeable41,self.placeable42,self.placeable43,self.placeable44,self.placeable45,self.placeable46,self.placeable47,
                         self.placeable48,self.placeable49,self.placeable50,self.placeable51,self.placeable52,self.placeable53,self.placeable54,self.placeable55,
                         self.placeable56,self.placeable57,self.placeable58,self.placeable59,self.placeable60,self.placeable61,self.placeable62,self.placeable63]    
+    self.takes = [  self.takes0,self.takes1,self.takes2,self.takes3,self.takes4,self.takes5,self.takes6,self.takes7,
+                    self.takes8,self.takes9,self.takes10,self.takes11,self.takes12,self.takes13,self.takes14,self.takes15,
+                    self.takes16,self.takes17,self.takes18,self.takes19,self.takes20,self.takes21,self.takes22,self.takes23,
+                    self.takes24,self.takes25,self.takes26,self.takes27,self.takes28,self.takes29,self.takes30,self.takes31,
+                    self.takes32,self.takes33,self.takes34,self.takes35,self.takes36,self.takes37,self.takes38,self.takes39,
+                    self.takes40,self.takes41,self.takes42,self.takes43,self.takes44,self.takes45,self.takes46,self.takes47,
+                    self.takes48,self.takes49,self.takes50,self.takes51,self.takes52,self.takes53,self.takes54,self.takes55,
+                    self.takes56,self.takes57,self.takes58,self.takes59,self.takes60,self.takes61,self.takes62,self.takes63]
     self.put[3 + (3 << 3)](othello.Config.WHITE)
     self.modifyEmptyCells(3 + (3 << 3))
     self.put[3 + (4 << 3)](othello.Config.BLACK)
@@ -77,19 +85,6 @@ class Board:
         if state != othello.Config.EMPTY:
           counter[state] += 1
     print "BLACK:", counter[othello.Config.BLACK], " WHITE:", counter[othello.Config.WHITE]
-
-  # <概要> 位置(x,y)にcolor色の駒を置いて得られる相手の駒数を返す
-  # <引数> pos:int(0~63), color:int(0~2)
-  # <返値> int(0~6)
-  def takes(self, pos, color):
-    container = self.__referenceContainer[pos]
-    res = ( self.__index.takes(self.board[container[0][0]], container[0][1], color)
-          + self.__index.takes(self.board[container[1][0]], container[1][1], color) )
-    if container[2][0] >= 0:
-      res += self.__index.takes(self.board[container[2][0]], container[2][1], color)
-    if container[3][0] >= 0:
-      res += self.__index.takes(self.board[container[3][0]], container[3][1], color)
-    return res
 
   def placeableCells(self, color):
     return [cellPos for cellPos in self.__emptyCells if self.placeable[cellPos](color) ]
@@ -151,7 +146,136 @@ class Board:
 
 
 
-  # 以下マス毎のputとplaceable関数. 関数ポインタのリストの該当位置に格納して使用される
+  # 以下マス毎のputとplaceableとtakes関数. 関数ポインタのリストの該当位置に格納して使用される
+  def takes0(self, color):
+    return self.__index.takes(self.board[0],0,color)+self.__index.takes(self.board[8],0,color)+self.__index.takes(self.board[32],0,color)
+  def takes1(self, color):
+    return self.__index.takes(self.board[0],1,color)+self.__index.takes(self.board[9],0,color)+self.__index.takes(self.board[31],0,color)
+  def takes2(self, color):
+    return self.__index.takes(self.board[0],2,color)+self.__index.takes(self.board[10],0,color)+self.__index.takes(self.board[16],0,color)+self.__index.takes(self.board[30],0,color)
+  def takes3(self, color):
+    return self.__index.takes(self.board[0],3,color)+self.__index.takes(self.board[11],0,color)+self.__index.takes(self.board[17],0,color)+self.__index.takes(self.board[29],0,color)
+  def takes4(self, color):
+    return self.__index.takes(self.board[0],4,color)+self.__index.takes(self.board[12],0,color)+self.__index.takes(self.board[18],0,color)+self.__index.takes(self.board[28],0,color)
+  def takes5(self, color):
+    return self.__index.takes(self.board[0],5,color)+self.__index.takes(self.board[13],0,color)+self.__index.takes(self.board[19],0,color)+self.__index.takes(self.board[27],0,color)
+  def takes6(self, color):
+    return self.__index.takes(self.board[0],6,color)+self.__index.takes(self.board[14],0,color)+self.__index.takes(self.board[20],0,color)
+  def takes7(self, color):
+    return self.__index.takes(self.board[0],7,color)+self.__index.takes(self.board[15],0,color)+self.__index.takes(self.board[21],0,color)
+  def takes8(self, color):
+    return self.__index.takes(self.board[1],0,color)+self.__index.takes(self.board[8],1,color)+self.__index.takes(self.board[33],0,color)
+  def takes9(self, color):
+    return self.__index.takes(self.board[1],1,color)+self.__index.takes(self.board[9],1,color)+self.__index.takes(self.board[16],1,color)+self.__index.takes(self.board[32],1,color)
+  def takes10(self, color):
+    return self.__index.takes(self.board[1],2,color)+self.__index.takes(self.board[10],1,color)+self.__index.takes(self.board[17],1,color)+self.__index.takes(self.board[31],1,color)
+  def takes11(self, color):
+    return self.__index.takes(self.board[1],3,color)+self.__index.takes(self.board[11],1,color)+self.__index.takes(self.board[18],1,color)+self.__index.takes(self.board[30],1,color)
+  def takes12(self, color):
+    return self.__index.takes(self.board[1],4,color)+self.__index.takes(self.board[12],1,color)+self.__index.takes(self.board[19],1,color)+self.__index.takes(self.board[29],1,color)
+  def takes13(self, color):
+    return self.__index.takes(self.board[1],5,color)+self.__index.takes(self.board[13],1,color)+self.__index.takes(self.board[20],1,color)+self.__index.takes(self.board[28],1,color)
+  def takes14(self, color):
+    return self.__index.takes(self.board[1],6,color)+self.__index.takes(self.board[14],1,color)+self.__index.takes(self.board[21],1,color)+self.__index.takes(self.board[27],1,color)
+  def takes15(self, color):
+    return self.__index.takes(self.board[1],7,color)+self.__index.takes(self.board[15],1,color)+self.__index.takes(self.board[22],0,color)
+  def takes16(self, color):
+    return self.__index.takes(self.board[2],0,color)+self.__index.takes(self.board[8],2,color)+self.__index.takes(self.board[16],2,color)+self.__index.takes(self.board[34],0,color)
+  def takes17(self, color):
+    return self.__index.takes(self.board[2],1,color)+self.__index.takes(self.board[9],2,color)+self.__index.takes(self.board[17],2,color)+self.__index.takes(self.board[33],1,color)
+  def takes18(self, color):
+    return self.__index.takes(self.board[2],2,color)+self.__index.takes(self.board[10],2,color)+self.__index.takes(self.board[18],2,color)+self.__index.takes(self.board[32],2,color)
+  def takes19(self, color):
+    return self.__index.takes(self.board[2],3,color)+self.__index.takes(self.board[11],2,color)+self.__index.takes(self.board[19],2,color)+self.__index.takes(self.board[31],2,color)
+  def takes20(self, color):
+    return self.__index.takes(self.board[2],4,color)+self.__index.takes(self.board[12],2,color)+self.__index.takes(self.board[20],2,color)+self.__index.takes(self.board[30],2,color)
+  def takes21(self, color):
+    return self.__index.takes(self.board[2],5,color)+self.__index.takes(self.board[13],2,color)+self.__index.takes(self.board[21],2,color)+self.__index.takes(self.board[29],2,color)
+  def takes22(self, color):
+    return self.__index.takes(self.board[2],6,color)+self.__index.takes(self.board[14],2,color)+self.__index.takes(self.board[22],1,color)+self.__index.takes(self.board[28],2,color)
+  def takes23(self, color):
+    return self.__index.takes(self.board[2],7,color)+self.__index.takes(self.board[15],2,color)+self.__index.takes(self.board[23],0,color)+self.__index.takes(self.board[27],2,color)
+  def takes24(self, color):
+    return self.__index.takes(self.board[3],0,color)+self.__index.takes(self.board[8],3,color)+self.__index.takes(self.board[17],3,color)+self.__index.takes(self.board[35],0,color)
+  def takes25(self, color):
+    return self.__index.takes(self.board[3],1,color)+self.__index.takes(self.board[9],3,color)+self.__index.takes(self.board[18],3,color)+self.__index.takes(self.board[34],1,color)
+  def takes26(self, color):
+    return self.__index.takes(self.board[3],2,color)+self.__index.takes(self.board[10],3,color)+self.__index.takes(self.board[19],3,color)+self.__index.takes(self.board[33],2,color)
+  def takes27(self, color):
+    return self.__index.takes(self.board[3],3,color)+self.__index.takes(self.board[11],3,color)+self.__index.takes(self.board[20],3,color)+self.__index.takes(self.board[32],3,color)
+  def takes28(self, color):
+    return self.__index.takes(self.board[3],4,color)+self.__index.takes(self.board[12],3,color)+self.__index.takes(self.board[21],3,color)+self.__index.takes(self.board[31],3,color)
+  def takes29(self, color):
+    return self.__index.takes(self.board[3],5,color)+self.__index.takes(self.board[13],3,color)+self.__index.takes(self.board[22],2,color)+self.__index.takes(self.board[30],3,color)
+  def takes30(self, color):
+    return self.__index.takes(self.board[3],6,color)+self.__index.takes(self.board[14],3,color)+self.__index.takes(self.board[23],1,color)+self.__index.takes(self.board[29],3,color)
+  def takes31(self, color):
+    return self.__index.takes(self.board[3],7,color)+self.__index.takes(self.board[15],3,color)+self.__index.takes(self.board[24],0,color)+self.__index.takes(self.board[28],3,color)
+  def takes32(self, color):
+    return self.__index.takes(self.board[4],0,color)+self.__index.takes(self.board[8],4,color)+self.__index.takes(self.board[18],4,color)+self.__index.takes(self.board[36],0,color)
+  def takes33(self, color):
+    return self.__index.takes(self.board[4],1,color)+self.__index.takes(self.board[9],4,color)+self.__index.takes(self.board[19],4,color)+self.__index.takes(self.board[35],1,color)
+  def takes34(self, color):
+    return self.__index.takes(self.board[4],2,color)+self.__index.takes(self.board[10],4,color)+self.__index.takes(self.board[20],4,color)+self.__index.takes(self.board[34],2,color)
+  def takes35(self, color):
+    return self.__index.takes(self.board[4],3,color)+self.__index.takes(self.board[11],4,color)+self.__index.takes(self.board[21],4,color)+self.__index.takes(self.board[33],3,color)
+  def takes36(self, color):
+    return self.__index.takes(self.board[4],4,color)+self.__index.takes(self.board[12],4,color)+self.__index.takes(self.board[22],3,color)+self.__index.takes(self.board[32],4,color)
+  def takes37(self, color):
+    return self.__index.takes(self.board[4],5,color)+self.__index.takes(self.board[13],4,color)+self.__index.takes(self.board[23],2,color)+self.__index.takes(self.board[31],4,color)
+  def takes38(self, color):
+    return self.__index.takes(self.board[4],6,color)+self.__index.takes(self.board[14],4,color)+self.__index.takes(self.board[24],1,color)+self.__index.takes(self.board[30],4,color)
+  def takes39(self, color):
+    return self.__index.takes(self.board[4],7,color)+self.__index.takes(self.board[15],4,color)+self.__index.takes(self.board[25],0,color)+self.__index.takes(self.board[29],4,color)
+  def takes40(self, color):
+    return self.__index.takes(self.board[5],0,color)+self.__index.takes(self.board[8],5,color)+self.__index.takes(self.board[19],5,color)+self.__index.takes(self.board[37],0,color)
+  def takes41(self, color):
+    return self.__index.takes(self.board[5],1,color)+self.__index.takes(self.board[9],5,color)+self.__index.takes(self.board[20],5,color)+self.__index.takes(self.board[36],1,color)
+  def takes42(self, color):
+    return self.__index.takes(self.board[5],2,color)+self.__index.takes(self.board[10],5,color)+self.__index.takes(self.board[21],5,color)+self.__index.takes(self.board[35],2,color)
+  def takes43(self, color):
+    return self.__index.takes(self.board[5],3,color)+self.__index.takes(self.board[11],5,color)+self.__index.takes(self.board[22],4,color)+self.__index.takes(self.board[34],3,color)
+  def takes44(self, color):
+    return self.__index.takes(self.board[5],4,color)+self.__index.takes(self.board[12],5,color)+self.__index.takes(self.board[23],3,color)+self.__index.takes(self.board[33],4,color)
+  def takes45(self, color):
+    return self.__index.takes(self.board[5],5,color)+self.__index.takes(self.board[13],5,color)+self.__index.takes(self.board[24],2,color)+self.__index.takes(self.board[32],5,color)
+  def takes46(self, color):
+    return self.__index.takes(self.board[5],6,color)+self.__index.takes(self.board[14],5,color)+self.__index.takes(self.board[25],1,color)+self.__index.takes(self.board[31],5,color)
+  def takes47(self, color):
+    return self.__index.takes(self.board[5],7,color)+self.__index.takes(self.board[15],5,color)+self.__index.takes(self.board[26],0,color)+self.__index.takes(self.board[30],5,color)
+  def takes48(self, color):
+    return self.__index.takes(self.board[6],0,color)+self.__index.takes(self.board[8],6,color)+self.__index.takes(self.board[20],6,color)
+  def takes49(self, color):
+    return self.__index.takes(self.board[6],1,color)+self.__index.takes(self.board[9],6,color)+self.__index.takes(self.board[21],6,color)+self.__index.takes(self.board[37],1,color)
+  def takes50(self, color):
+    return self.__index.takes(self.board[6],2,color)+self.__index.takes(self.board[10],6,color)+self.__index.takes(self.board[22],5,color)+self.__index.takes(self.board[36],2,color)
+  def takes51(self, color):
+    return self.__index.takes(self.board[6],3,color)+self.__index.takes(self.board[11],6,color)+self.__index.takes(self.board[23],4,color)+self.__index.takes(self.board[35],3,color)
+  def takes52(self, color):
+    return self.__index.takes(self.board[6],4,color)+self.__index.takes(self.board[12],6,color)+self.__index.takes(self.board[24],3,color)+self.__index.takes(self.board[34],4,color)
+  def takes53(self, color):
+    return self.__index.takes(self.board[6],5,color)+self.__index.takes(self.board[13],6,color)+self.__index.takes(self.board[25],2,color)+self.__index.takes(self.board[33],5,color)
+  def takes54(self, color):
+    return self.__index.takes(self.board[6],6,color)+self.__index.takes(self.board[14],6,color)+self.__index.takes(self.board[26],1,color)+self.__index.takes(self.board[32],6,color)
+  def takes55(self, color):
+    return self.__index.takes(self.board[6],7,color)+self.__index.takes(self.board[15],6,color)+self.__index.takes(self.board[31],6,color)
+  def takes56(self, color):
+    return self.__index.takes(self.board[7],0,color)+self.__index.takes(self.board[8],7,color)+self.__index.takes(self.board[21],7,color)
+  def takes57(self, color):
+    return self.__index.takes(self.board[7],1,color)+self.__index.takes(self.board[9],7,color)+self.__index.takes(self.board[22],6,color)
+  def takes58(self, color):
+    return self.__index.takes(self.board[7],2,color)+self.__index.takes(self.board[10],7,color)+self.__index.takes(self.board[23],5,color)+self.__index.takes(self.board[37],2,color)
+  def takes59(self, color):
+    return self.__index.takes(self.board[7],3,color)+self.__index.takes(self.board[11],7,color)+self.__index.takes(self.board[24],4,color)+self.__index.takes(self.board[36],3,color)
+  def takes60(self, color):
+    return self.__index.takes(self.board[7],4,color)+self.__index.takes(self.board[12],7,color)+self.__index.takes(self.board[25],3,color)+self.__index.takes(self.board[35],4,color)
+  def takes61(self, color):
+    return self.__index.takes(self.board[7],5,color)+self.__index.takes(self.board[13],7,color)+self.__index.takes(self.board[26],2,color)+self.__index.takes(self.board[34],5,color)
+  def takes62(self, color):
+    return self.__index.takes(self.board[7],6,color)+self.__index.takes(self.board[14],7,color)+self.__index.takes(self.board[33],6,color)
+  def takes63(self, color):
+    return self.__index.takes(self.board[7],7,color)+self.__index.takes(self.board[15],7,color)+self.__index.takes(self.board[32],7,color)
+
   def placeable0(self, color):
     if self.__index.takes(self.board[0],0,color) or self.__index.takes(self.board[8],0,color) or self.__index.takes(self.board[32],0,color):
       return True

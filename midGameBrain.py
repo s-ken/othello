@@ -1,7 +1,10 @@
 # -*- coding:utf-8 -*-
 
 import othello
+import transPositionTable
 
+# 中盤
+# 探索:AlphaBeta, 盤面評価:位置+着手可能手数+確定石数, MoveOrdering:1手先の盤面評価値
 
 class MidGameBrain():
   def __init__(self, board, color):
@@ -9,14 +12,15 @@ class MidGameBrain():
     self.color = color  # 自分の色
     self.__valid = True
     #self.cutCounter = 0
-    #self.__transpositionTable = None
+    self.__transpositionTable = None
 
   # <概要> 現盤面で打てる位置に対してそれぞれ評価関数を呼び出し,
   #        その値が最大となる位置を返す.
   def evaluate(self, turnCounter):
     #self.cutCounter = 0
-    #self.__transpositionTable = transPositionTable.TranspositionTable()
-    placeableCells = self.__moveOrdering(self.board.placeableCells(self.color), not self.color)
+    self.__transpositionTable = transPositionTable.TranspositionTable()
+    placeableCells = self.board.placeableCells(self.color)
+    self.__moveOrderingFirst(self.board.placeableCells(self.color), self.color)
     stateCpy = self.board.getState()  # 盤面コピー
     maxValue = -othello.Config.INF
     a = -othello.Config.INF
@@ -49,12 +53,13 @@ class MidGameBrain():
       if passed:
         return self.__evaluateLeaf(color) # 連続パスでゲーム終了 TODO
       return -self.__alphaBeta(not color, height, -beta, -alpha, True)  # パス
-    #placeableCells = self.__moveOrdering(placeableCells, color)
+    if height >= 3:
+      placeableCells = self.__moveOrdering(placeableCells, color)
     stateCpy = self.board.getState()  # 盤面コピー
     maxValue = -othello.Config.INF
     a = alpha
     """
-    if height > 3:
+    if height >= 7:
       found, key, i, alphaBeta = self.__transpositionTable.refer(self.board.board, (alpha, beta))
       if found:
         if alphaBeta[1] <= alpha:
@@ -69,7 +74,7 @@ class MidGameBrain():
         alpha = max(alpha, alphaBeta[0])
         beta  = min(beta,  alphaBeta[1])
       for placeableCell in placeableCells:
-        self.board.put(placeableCell, color)
+        self.board.put[placeableCell](color)
         value = -self.__alphaBeta(not color, height - 1, -beta, -a, False)
         self.board.restore(stateCpy)
         if value >= beta:
@@ -86,17 +91,17 @@ class MidGameBrain():
       return maxValue
     else:
       for placeableCell in placeableCells:
-        self.board.put(placeableCell, color)
+        self.board.put[placeableCell](color)
         value = -self.__alphaBeta(not color, height - 1, -beta, -a, False)
         self.board.restoreState(stateCpy)
         if value >= beta:
-          self.cutCounter += 1
+          #self.cutCounter += 1
           return value  # カット
         if value > maxValue:
           a = max(a, value)
           maxValue = value
       return maxValue
-      """
+    """
     for placeableCell in placeableCells:
       self.board.put[placeableCell](color)
       value = -self.__alphaBeta(not color, height - 1, -beta, -a, False)
@@ -109,14 +114,34 @@ class MidGameBrain():
         maxValue = value
     return maxValue
 
-  # <概要> 与えられた次手候補cellリストを評価値の見込みが高い順にソートする
-  #        これによってゲーム木探索中の枝刈り回数を増加させる
+  # <概要> 与えられた次手候補cellリストを評価値の見込みが高い順にソートする.
+  #        これによってゲーム木探索中の枝刈り回数を増加させる.
+  #        具体的には1手先の盤面を評価関数で評価した値を比較している.
   def __moveOrdering(self, cellPosList, color):
-    return cellPosList
+    stateCpy = self.board.getState()  # 盤面コピー
+    values = [0] * len(cellPosList)
+    for i, pos in enumerate(cellPosList):
+      self.board.put[pos](color)
+      values[i] = self.__evaluateLeaf(color)
+      self.board.restoreState(stateCpy)
+    return [pos for value, pos in sorted(zip(values, cellPosList),reverse=True)]
 
-  # <概要> てきとーに http://uguisu.skr.jp/othello/5-1.html の重み付け + 置ける場所の数の差*4
+  # <概要> 探索木のrootでのMoveOrdering関数
+  #        // 深さ3の探索の評価値をもとにソートする
+  #        通常のやつと同じ
+  def __moveOrderingFirst(self, cellPosList, color):
+    stateCpy = self.board.getState()  # 盤面コピー
+    values = [0] * len(cellPosList)
+    for i, pos in enumerate(cellPosList):
+      self.board.put[pos](color)
+      #values[i] = -self.__alphaBeta(not color, 2, -othello.Config.INF, othello.Config.INF, False)
+      values[i] = self.__evaluateLeaf(color)
+      self.board.restoreState(stateCpy)
+    return [pos for value, pos in sorted(zip(values, cellPosList),reverse=True)]
+
+  # <概要> http://uguisu.skr.jp/othello/5-1.html の位置重み付け + 確定石数差*8 + 置ける場所の数の差*4
   def __evaluateLeaf(self, color):
     res =  self.board.getEval(color)
     res += self.board.getSettled(color) << 3
-    res += self.board.getMobility(color) << 2 # 着手可能候補数
+    res += self.board.getMobility(color) << 1 # 着手可能候補数
     return res

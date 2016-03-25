@@ -7,10 +7,10 @@ Python2.7 + pygame
 board : オセロの盤面の実体 (int(short?)型のインデックスが水平11個,垂直11個,斜め8*2=16個,合計38次元int(short?)型リスト)<br>
 ...インデックスボードについての詳細は http://sealsoft.jp/thell/algorithm.html<br>
 at(x, y) : 盤面の2次元平面の位置(x, y)に対応するマスの状態(黒=0,白=1,空=2)を返す<br>
-takes(pos, color) : 位置pos(=x+y*8)にcolor色のコマを置いた場合に取れる相手のコマの数を返す<br>
-put(pos, color) : 位置posにcolor色のコマを置く->boardの関係するインデックスが書き換わる<br>
-placeable(pos) : 位置posにコマを置けるか判定．TrueかFalseを返す<br>
-placeableCells() : コマを置くことができるマスの位置(x+y*8)のリストを返す<br>
+takes\[pos\](color) : 位置pos(=x+y*8)にcolor色のコマを置いた場合に取れる相手のコマの数を返す<br>
+put\[pos\](color) : 位置posにcolor色のコマを置く->boardの関係するインデックスが書き換わる<br>
+placeable\[pos\](color) : 位置posにコマを置けるか判定．TrueかFalseを返す<br>
+placeableCells(color) : コマを置くことができるマスの位置(x+y*8)のリストを返す<br>
 
 <b>Indexクラス</b><br>
 takes(code, x, color) : codeに符号化されるマス列の位置xにcolor色の駒を置いたときに裏返る駒の数を返す<br>
@@ -25,8 +25,17 @@ __changeBrain() : phase進行<br>
 <b>BookBrainクラス</b><br>
  OpeningBookを読みながらゲーム進行する<br>
 
-<b>AlphaBetaBrain</b><br>
-ゲーム木をAlphaBeta探索する.葉での盤面評価関数と探索過程でのMoveOrdering関数はコンストラクタ引数で与えられる.<br>
+<b>MidGameBrain</b><br>
+ゲーム木を探索する.<br>
+アルゴリズム: AlphaBeta法<br>
+MoveOrdering: 一手先の盤面評価値の高い順<br>
+盤面評価関数: 駒の位置による評価+着手可能手数差(近似値)+確定石数差(近似値)<br>
+
+<b>EndGameBrain</b><br>
+ゲーム木を探索してゲーム終了まで読み切る.<br>
+アルゴリズム: AlphaBeta法<br>
+MoveOrdering: 一手先の相手の着手可能手数(真値)の少ない順<br>
+盤面評価関数: 石差<br>
 
 <b>Youクラス</b><br>
 takeTurn() : クリックされた位置にコマを置く<br>
@@ -43,7 +52,7 @@ output() : 結果を出力する<br>
 <s>・Undo機能の実装</s> (BackSpaceでUndo)<br>
 ->OpeningBook進行への対応<br>
 ・探索アルゴリズムの改良<br>
-	→MoveOrderingの実装<br>
+	<s>→MoveOrderingの実装<br>
 	→NegaScout法の実装<br>
 	→置換表の実装<br>
 	→並列化<br>
@@ -53,7 +62,7 @@ output() : 結果を出力する<br>
 	<s>→終盤:石差<br>
 ・phase毎の探索アルゴリズム実装<br>
 	→序盤:OpeningBook(定石)の実装<br>
-	→中盤:NegaScout法,置換表,浅い探索によるMoveOrdering<br>
+	→中盤:NegaScout法,置換表<br>
 	→終盤:WPNS or 速さ優先AlpaBeta<br>
 ・Indexクラスの行列圧縮...キャッシュヒット率上昇で高速化?<br>
 ・BitBoardの実装<br>
