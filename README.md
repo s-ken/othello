@@ -52,14 +52,14 @@ output() : 結果を出力する<br>
 <s>・Undo機能の実装</s> (BackSpaceでUndo)<br>
 ->OpeningBook進行への対応<br>
 ・探索アルゴリズムの改良<br>
-	<s>→MoveOrderingの実装<br>
+	<s>→MoveOrderingの実装</s><br>
 	→NegaScout法の実装<br>
 	→置換表の実装<br>
 	→並列化<br>
 ・evaluateLeaf関数の本実装<br>
-	<s>→中盤:古典的評価関数(駒の位置,着手可能マス数,確定石数)<br>
+	<s>→中盤:古典的評価関数(駒の位置,着手可能マス数,確定石数)</s><br>
 	→中盤:統計的評価関数(Logistelloパターンの回帰分析)...python遅すぎて無理ぽい<br>
-	<s>→終盤:石差<br>
+	<s>→終盤:石差</s><br>
 ・phase毎の探索アルゴリズム実装<br>
 	→序盤:OpeningBook(定石)の実装<br>
 	→中盤:NegaScout法,置換表<br>

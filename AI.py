@@ -30,6 +30,7 @@ class AI():
     self.board.put[pos](self.color)  # 位置(x,y)に駒を置く
     self.board.modifyEmptyCells(pos) # 空マスリストの更新
     print ("time:{0}".format(time.time()-start))+"[sec]"
+    return pos
 
   def __changeBrain(self):
     if self.__brain is self.__middleBrain:

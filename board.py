@@ -11,6 +11,8 @@ class Board:
     self.empty_img    = pygame.image.load('empty.png').convert()
     self.black_img    = pygame.image.load('black.png').convert()
     self.white_img    = pygame.image.load('white.png').convert()
+    self.puttedBlack_img    = pygame.image.load('puttedBlack.png').convert()
+    self.puttedWhite_img    = pygame.image.load('puttedWhite.png').convert()
     self.placeable_img= pygame.image.load('placeable.png').convert()
     self.empty_rect   = self.empty_img.get_rect()
     self.black_rect   = self.empty_img.get_rect()
@@ -60,7 +62,7 @@ class Board:
   def at(self, x, y):
     return (self.board[y] % (3 ** (x + 1))) / (3 ** x)
 
-  def printBoard(self, turn): # TODO
+  def printBoard(self, puttedPos, turn): # TODO
     for x in range(othello.Config.CELL_NUM):
       for y in range(othello.Config.CELL_NUM):
         xy = (x*othello.Config.CELL_WIDTH, y*othello.Config.CELL_WIDTH)
@@ -71,9 +73,15 @@ class Board:
           else:
             self.__screen.blit(self.empty_img, self.empty_rect.move(xy))
         if state == othello.Config.BLACK:
-          self.__screen.blit(self.black_img, self.black_rect.move(xy))
+          if x+y*8 == puttedPos:
+            self.__screen.blit(self.puttedBlack_img, self.black_rect.move(xy))
+          else:
+            self.__screen.blit(self.black_img, self.black_rect.move(xy))
         if state == othello.Config.WHITE:
-          self.__screen.blit(self.white_img, self.white_rect.move(xy))
+          if x+y*8 == puttedPos:
+            self.__screen.blit(self.puttedWhite_img, self.black_rect.move(xy))
+          else:
+            self.__screen.blit(self.white_img, self.white_rect.move(xy))
     pygame.display.flip()
 
   # <概要> 駒の数をプリントする

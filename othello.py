@@ -21,13 +21,14 @@ class Config:
   CELL_NUM      = 8
   WINDOW_WIDTH  = CELL_WIDTH * CELL_NUM
   WPOS          = CELL_WIDTH * (CELL_NUM - 1)
-  AI_COLOR      = BLACK
   INF           = sys.maxint
-  LAST_PHASE    = 46
-  TABLE_SIZE    = 65537
-  CHAIN_LENGTH  = 2
   POW3          = [3 ** i for i in range(8)]
-  MID_HEIGHT    = 6 # 中盤ゲーム木の高さ
+
+  AI_COLOR      = WHITE
+  MID_HEIGHT    = 6       # 中盤ゲーム木の高さ
+  LAST_PHASE    = 46      # 終盤読み切りを開始するタイミング
+  TABLE_SIZE    = 65537   # 置換表のハッシュテーブルサイズ
+  CHAIN_LENGTH  = 2       # 置換表のハッシュテーブルの連結数
   WEIGHTS       = [ [ 30, -12,  0, -1, -1,  0, -12,  30],
                     [-12, -15, -3, -3, -3, -3, -15, -12],
                     [  0,  -3,  0, -1, -1,  0,  -3,   0],
@@ -62,7 +63,7 @@ class You():
             self.board.modifyEmptyCells(xpos + ypos * Config.CELL_NUM)
             if self.openingBook.isValid():
               self.openingBook.proceed(xpos, ypos)  # 定石通りかどうかチェック
-            return
+            return xpos + ypos * Config.CELL_NUM
           else:
             print "ERROR: You cannot put here."   # クリック地点が置けない場所ならループ継続
 
@@ -80,15 +81,16 @@ class Game:
     self.__openingBook = book.OpeningBook()
     self.__player[Config.AI_COLOR]      = AI.AI(self.__board, Config.AI_COLOR, self.__openingBook)
     self.__player[not Config.AI_COLOR]  = You(self.__board, not Config.AI_COLOR, self.__openingBook)
+    self.__puttedPos = -1
   def run(self):
     while 1:
-      self.__board.printBoard(self.__turn%2)
+      self.__board.printBoard(self.__puttedPos, self.__turn%2)
       if self.__turnCounter == 60:
         break
       if self.__player[self.__turn%2].canPut():  # 置ける場所があればTrue
         try:
           print "Turn:", self.__turnCounter
-          self.__player[self.__turn%2].takeTurn(self.__turnCounter) # 俺のターン
+          self.__puttedPos  = self.__player[self.__turn%2].takeTurn(self.__turnCounter) # 俺のターン
           self.__passedFlag = False
         except UndoRequest:
           self.__undo()
