@@ -16,8 +16,9 @@ class OpeningBook:
 
   # 木のNode
   class Node:
-    def __init__(self):
+    def __init__(self, score=0):
       self.child = {} # key=位置,val=Nodeの辞書型?
+      self.score = score
 
   def __init__(self):
     self.__currentNode = self.__initBook()  # 木のrootで初期化
@@ -25,22 +26,56 @@ class OpeningBook:
 
   # <概要> file入力からBookを構築する
   def __initBook(self): # TODO
+    #input_file = open("./extra-large-20080301.txt")
+    input_file = open("./book_test.txt")
     root = OpeningBook.Node()
-    node = self.__addChild(root, self.__pos2key(2, 3))  # (2,3)に黒
-    self.__addChild(node, self.__pos2key(2, 2))         # (2,2)に白
+    for row in input_file:
+      nodes = self.__row2nodes(row)
+      self.__addNodes(root, nodes) 
+    #node = self.__addChild(root, self.__pos2key(2, 3))  # (2,3)に黒
+    #self.__addChild(node, self.__pos2key(2, 2))         # (2,2)に白
+    
+    currentNode = root
+    print currentNode.child.keys()
+    #key = currentNode.child.keys()[0]
+    #currentNode = currentNode.child[key]
+    
     return root
 
   def __pos2key(self, x, y):
     return x + y * othello.Config.CELL_NUM
 
-  def __key2pos(self, key):
+  def __key2pos(self, key): 
     return (key % othello.Config.CELL_NUM, key / othello.Config.CELL_NUM)
+
+  # <概要> "C4"等の位置 --> key
+  def __charpos2key(self, charpos): #TODO (implemented, not tested)
+    alphabets = ['A','B','C','D','E','F','G','H']
+    x = alphabets.index(charpos[0])
+    y = int(charpos[1])-1
+    return self.__pos2key(x, y)
+
+  # <概要> stringのrow --> (key, score)のリスト
+  def __row2nodes(self, row): #TODO (implemented, not tested)
+    sep = row.split(" ; ")
+    nodes = [(self.__charpos2key(sep[0][i: i+2]), 0) for i in range(0, len(sep[0]), 2)]
+    nodes[-1] = (nodes[-1][0], float(sep[1]))
+    return nodes
 
   # <概要> nodeに子Nodeを追加
   # <返値> 新規追加した子Node
-  def __addChild(self, parentNode, key):
-    parentNode.child[key] = OpeningBook.Node()
+  def __addChild(self, parentNode, key, score=0):
+    parentNode.child[key] = OpeningBook.Node(score)
     return parentNode.child[key]
+
+  def __addNodes(self, parentNode, nodes): #TODO (implemented, not tested)
+    currentNode = parentNode
+    for node in nodes:
+      keys = currentNode.child.keys()
+      if not node[0] in keys:
+        currentNode = self.__addChild(currentNode, node[0], node[1])
+      else:
+        currentNode = currentNode.child[node[0]]
 
   # <概要> 相手(You)が定石通りにコマを置いているか判定しながらbookを読み進める
   #        この関数は,YouクラスのtakeTurn()内でboard.put()が呼ばれた後に実行される
@@ -58,6 +93,7 @@ class OpeningBook:
   def readBook(self):
     key = self.__currentNode.child.keys()[0]
     self.__currentNode = self.__currentNode.child[key]
+    print "On Book"
     return self.__key2pos(key) # 候補の一番目を返す(仮)
 
   # <概要> 現状定石通りかどうかの真偽値を返す
