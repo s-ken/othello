@@ -36,9 +36,7 @@ class OpeningBook:
     #self.__addChild(node, self.__pos2key(2, 2))         # (2,2)に白
     
     currentNode = root
-    print currentNode.child.keys()
-    #key = currentNode.child.keys()[0]
-    #currentNode = currentNode.child[key]
+    #print currentNode.child.keys()
     
     return root
 
@@ -91,10 +89,13 @@ class OpeningBook:
 
   # <概要> bookを読んでコマを置くべき位置を得る
   def readBook(self):
-    key = self.__currentNode.child.keys()[0]
+  
+    key = max(self.__currentNode.child.items(), key=lambda x:x[1].score)[0] # score最大ノードのキーを返す
+    #key = self.__currentNode.child.keys()[0] # 候補の一番目を返す
+    
     self.__currentNode = self.__currentNode.child[key]
     print "On Book"
-    return self.__key2pos(key) # 候補の一番目を返す(仮)
+    return self.__key2pos(key)
 
   # <概要> 現状定石通りかどうかの真偽値を返す
   def isValid(self):
