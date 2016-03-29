@@ -21,8 +21,10 @@ class OpeningBook:
       self.score = score
 
   def __init__(self):
-    self.__currentNode = self.__initBook()  # 木のrootで初期化
+    self.__currentNode = self.__root = self.__initBook()  # 木のrootで初期化
     self.__valid = True
+    self.__symm = False
+    self.__rote = False
 
   # <概要> file入力からBookを構築する
   def __initBook(self): # TODO
@@ -45,6 +47,21 @@ class OpeningBook:
 
   def __key2pos(self, key): 
     return (key % othello.Config.CELL_NUM, key / othello.Config.CELL_NUM)
+
+  def __pos2correctedPos(self, x, y):
+    if self.__symm:
+      x,y = y,x
+    if self.__rote:
+      x,y = othello.Config.CELL_NUM-1-x, othello.Config.CELL_NUM-1-y
+    return x,y
+
+  def __pos2correctedKey(self, x, y):
+    x,y = self.__pos2correctedPos(x,y)
+    return self.__pos2key(x,y)
+
+  def __key2correctedPos(self, key):
+    x,y = self.__key2pos(key)
+    return self.__pos2correctedPos(x,y)
 
   # <概要> "C4"等の位置 --> key
   def __charpos2key(self, charpos): #TODO (implemented, not tested)
@@ -79,7 +96,17 @@ class OpeningBook:
   #        この関数は,YouクラスのtakeTurn()内でboard.put()が呼ばれた後に実行される
   # <引数> x:int, y:int
   def proceed(self, x, y):
-    key = self.__pos2key(x, y)
+    if self.__currentNode is self.__root:   # 相手が黒の一手目を打ったらbookとの対称性を記録する
+      key = self.__pos2key(x, y)
+      if key == 19: # = D3(3,2)
+        self.__symm = True
+      elif key == 37:  # = F5(5,4)
+        self.__rote = True
+      elif key == 44: # = E6(4,5)
+        self.__symm = True
+        self.__rote = True
+
+    key = self.__pos2correctedKey(x,y)
     if key in self.__currentNode.child:
       self.__currentNode = self.__currentNode.child[key]  # 相手(You)が定石通り(bookに載ってるパターン)に打ってきたら先に進む
       if not len(self.__currentNode.child):
@@ -95,7 +122,7 @@ class OpeningBook:
     
     self.__currentNode = self.__currentNode.child[key]
     print "On Book"
-    return self.__key2pos(key)
+    return self.__key2correctedPos(key)
 
   # <概要> 現状定石通りかどうかの真偽値を返す
   def isValid(self):
