@@ -10,12 +10,14 @@
 
 import othello
 
+
 # <メンバ> __currentNode:木構造上の現盤面のNode
 #          __valid:ゲームが定石通りに進行中か否か
-class OpeningBook:
+class OpeningBook(object):
 
   # 木のNode
-  class Node:
+  class Node(object):
+    __slots__ = ['child', 'score']
     def __init__(self, score=0):
       self.child = {} # key=位置,val=Nodeの辞書型?
       self.score = score
