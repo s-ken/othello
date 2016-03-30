@@ -22,7 +22,7 @@ class AI():
     return "AI"
 
   def takeTurn(self, turnCounter):
-    if not self.__brain.isValid():
+    if not self.__brain.isValid(turnCounter):
       self.__changeBrain()
       print "change"
     start = time.time()
@@ -50,5 +50,5 @@ class BookBrain():
     x, y = self.__openingBook.readBook()
     return x + y * 8
 
-  def isValid(self):
+  def isValid(self, turnCounter):
     return self.__openingBook.isValid()

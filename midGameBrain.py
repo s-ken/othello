@@ -11,14 +11,12 @@ class MidGameBrain():
     self.board = board  # boardへの参照
     self.color = color  # 自分の色
     self.__valid = True
-    #self.cutCounter = 0
-    self.__transpositionTable = None
+    #self.__transpositionTable = None
 
   # <概要> 現盤面で打てる位置に対してそれぞれ評価関数を呼び出し,
   #        その値が最大となる位置を返す.
   def evaluate(self, turnCounter):
-    #self.cutCounter = 0
-    self.__transpositionTable = transPositionTable.TranspositionTable()
+    #self.__transpositionTable = transPositionTable.TranspositionTable()
     placeableCells = self.board.placeableCells(self.color)
     self.__moveOrderingFirst(self.board.placeableCells(self.color), self.color)
     stateCpy = self.board.getState()  # 盤面コピー
@@ -32,14 +30,10 @@ class MidGameBrain():
         a = max(a, value)
         maxValue = value
         res = placeableCell
-    #print "cut:",self.cutCounter
-    #print "col:",self.__transpositionTable.collision
-    if turnCounter+2 >= othello.Config.LAST_PHASE:
-      self.__valid = False
     return res
 
-  def isValid(self):  # TODO
-    return self.__valid
+  def isValid(self, turnCounter):
+    return turnCounter < othello.Config.LAST_PHASE
 
   def __negaScout(self, color, height, alpha, beta, passed):
     placeableCells = self.board.placeableCells(color)
