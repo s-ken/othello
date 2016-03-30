@@ -10,7 +10,6 @@ class MidGameBrain():
   def __init__(self, board, color):
     self.board = board  # boardへの参照
     self.color = color  # 自分の色
-    self.__valid = True
     #self.__transpositionTable = None
 
   # <概要> 現盤面で打てる位置に対してそれぞれ評価関数を呼び出し,

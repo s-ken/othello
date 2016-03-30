@@ -102,6 +102,14 @@ class Board:
     for cellPos in self.__emptyCells:
       if self.placeable[cellPos](color):
         res += 1
+    if self.placeable[0](color):
+      res += 1
+    if self.placeable[7](color):
+      res += 1
+    if self.placeable[56](color):
+      res += 1
+    if self.placeable[63](color):
+      res += 1
     return res
 
   # ==================== 評価関数関連 ====================

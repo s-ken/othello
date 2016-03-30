@@ -4,7 +4,8 @@ import othello
 
 class TranspositionTable: # TODO
 
-  class Element:
+  class Element(object):
+    __slots__ = ['indexes', 'alphaBeta']
     def __init__(self):
       self.indexes = [None] * 8
       self.alphaBeta = None   # タプル
@@ -12,6 +13,11 @@ class TranspositionTable: # TODO
   def __init__(self):
     self.TABLE_SIZE = othello.Config.TABLE_SIZE
     self.__table = [TranspositionTable.Element() for i in range(self.TABLE_SIZE)]
+
+  def init(self):
+    for i in xrange(self.TABLE_SIZE):
+      self.__table[i].indexes = [None] * 8
+      self.__table[i].alphaBeta = None      
 
   @classmethod
   def __hash(cls, indexes):
