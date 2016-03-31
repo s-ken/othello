@@ -6,14 +6,19 @@ import endGameBrain
 import time
 
 class AI():
-  def __init__(self, board, color, openingBook):
+  def __init__(self, board, color, openingBook, weight):
     self.board = board  # boardへの参照
     self.color = color  # 自分の色
-    self.openingBook = openingBook
-    self.__brain = BookBrain(board, color, openingBook)
-    self.__middleBrain  = midGameBrain.MidGameBrain(board, color)
-    self.__endBrain     = endGameBrain.EndGameBrain(board, color)
-    self.__turnCounter  = color
+    self.__endBrain = endGameBrain.EndGameBrain(board, color)
+    self.__middleBrain = midGameBrain.MidGameBrain(board, color, weight)
+    if openingBook is None:
+      self.__brain = self.__middleBrain
+    else:
+      self.__brain = BookBrain(board, color, openingBook)
+
+  def setWeight(self, weight):
+    self.__middleBrain.setWeight(weight)
+    self.__brain = self.__middleBrain
 
   def canPut(self):
     return len(self.board.placeableCells(self.color)) > 0
@@ -24,12 +29,12 @@ class AI():
   def takeTurn(self, turnCounter):
     if not self.__brain.isValid(turnCounter):
       self.__changeBrain()
-      print "change"
-    start = time.time()
+    #  print "change"
+    #start = time.time()
     pos = self.__brain.evaluate(turnCounter)
     self.board.put[pos](self.color)  # 位置(x,y)に駒を置く
     self.board.modifyEmptyCells(pos) # 空マスリストの更新
-    print ("time:{0}".format(time.time()-start))+"[sec]"
+    #print ("time:{0}".format(time.time()-start))+"[sec]"
     return pos
 
   def __changeBrain(self):
@@ -37,7 +42,6 @@ class AI():
       self.__brain = self.__endBrain
     else:
       self.__brain = self.__middleBrain
-
 
 class BookBrain():
   def __init__(self, board, color, openingBook):

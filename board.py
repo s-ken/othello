@@ -5,25 +5,36 @@ import othello
 import index
 
 class Board:
-  def __init__(self):
-    pygame.init()
-    self.__screen     = pygame.display.set_mode( (othello.Config.WINDOW_WIDTH, othello.Config.WINDOW_WIDTH) )
-    self.empty_img    = pygame.image.load('img/empty.png').convert()
-    self.black_img    = pygame.image.load('img/black.png').convert()
-    self.white_img    = pygame.image.load('img/white.png').convert()
-    self.puttedBlack_img    = pygame.image.load('img/puttedBlack.png').convert()
-    self.puttedWhite_img    = pygame.image.load('img/puttedWhite.png').convert()
-    self.placeable_img= pygame.image.load('img/placeable.png').convert()
-    self.empty_rect   = self.empty_img.get_rect()
-    self.black_rect   = self.empty_img.get_rect()
-    self.white_rect   = self.empty_img.get_rect()
-    self.__screen.fill((0,0,0))
-    pygame.display.set_caption('Othello')
-    pygame.mouse.set_visible(True)
-
-    self.board 	      = [6560] * 38
-    self.__emptyCells = range(othello.Config.CELL_NUM ** 2) # 空マスのインデックスリスト. placeableCells()で使用する
-    self.__index      = index.Index()
+  def __init__(self, visible):
+    if visible:
+      pygame.init()
+      self.__screen     = pygame.display.set_mode( (othello.Config.WINDOW_WIDTH, othello.Config.WINDOW_WIDTH) )
+      self.empty_img    = pygame.image.load('img/empty.png').convert()
+      self.black_img    = pygame.image.load('img/black.png').convert()
+      self.white_img    = pygame.image.load('img/white.png').convert()
+      self.puttedBlack_img    = pygame.image.load('img/puttedBlack.png').convert()
+      self.puttedWhite_img    = pygame.image.load('img/puttedWhite.png').convert()
+      self.placeable_img= pygame.image.load('img/placeable.png').convert()
+      self.empty_rect   = self.empty_img.get_rect()
+      self.black_rect   = self.empty_img.get_rect()
+      self.white_rect   = self.empty_img.get_rect()
+      self.__screen.fill((0,0,0))
+      pygame.display.set_caption('Othello')
+      pygame.mouse.set_visible(True)
+    self.INITIAL_STATE = [  6560, 6560, 6560, 6371, 6425, 6560, 6560, 6560, # 水平
+                            6560, 6560, 6560, 6371, 6425, 6560, 6560, 6560, # 垂直
+                            6560, 6560, 6560, 6560, 6533, 6344, 6533, 6560, 6560, 6560, 6560,   # 斜め45°
+                            6560, 6560, 6560, 6560, 6506, 6452, 6506, 6560, 6560, 6560, 6560 ]  # 斜め135°
+    self.INITIAL_EMPCELL = [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,29,30,31,32,33,34,37,38,39,40,41,42,43,44,45,46,47,48,49,50,51,52,53,54,55,56,57,58,59,60,61,62,63]
+    self.board 	  = [6560] * 38
+    self.__index  = index.Index()
+    self.__first3 = [i % (3**3) for i in range(6561)] # 3進8bitから下位3bitを得る
+    self.__first4 = [i % (3**4) for i in range(6561)]
+    self.__first5 = [i % (3**5) for i in range(6561)]
+    self.__first6 = [i % (3**6) for i in range(6561)]
+    self.__first7 = [i % (3**7) for i in range(6561)]
+    self.__last3  = self.__initLast3()                # 3進8bitから上位3bitを得る
+    self.__last5  = self.__initLast5()
     self.put = [  self.putAt0,self.putAt1,self.putAt2,self.putAt3,self.putAt4,self.putAt5,self.putAt6,self.putAt7,
                   self.putAt8,self.putAt9,self.putAt10,self.putAt11,self.putAt12,self.putAt13,self.putAt14,self.putAt15,
                   self.putAt16,self.putAt17,self.putAt18,self.putAt19,self.putAt20,self.putAt21,self.putAt22,self.putAt23,
@@ -48,15 +59,12 @@ class Board:
                     self.takes40,self.takes41,self.takes42,self.takes43,self.takes44,self.takes45,self.takes46,self.takes47,
                     self.takes48,self.takes49,self.takes50,self.takes51,self.takes52,self.takes53,self.takes54,self.takes55,
                     self.takes56,self.takes57,self.takes58,self.takes59,self.takes60,self.takes61,self.takes62,self.takes63]
-    self.put[3 + (3 << 3)](othello.Config.WHITE)
-    self.modifyEmptyCells(3 + (3 << 3))
-    self.put[3 + (4 << 3)](othello.Config.BLACK)
-    self.modifyEmptyCells(3 + (4 << 3))
-    self.put[4 + (3 << 3)](othello.Config.BLACK)
-    self.modifyEmptyCells(4 + (3 << 3))
-    self.put[4 + (4 << 3)](othello.Config.WHITE)
-    self.modifyEmptyCells(4 + (4 << 3))
-    self.__prevState = None   # Undo用
+    self.init()
+
+  def init(self):
+    self.board            = list(self.INITIAL_STATE)
+    self.__emptyCells     = list(self.INITIAL_EMPCELL)
+    self.__prevState      = None   # Undo用
     self.__prevEmptyCells = None
     
   def at(self, x, y):
@@ -97,6 +105,7 @@ class Board:
   def placeableCells(self, color):
     return [cellPos for cellPos in self.__emptyCells if self.placeable[cellPos](color) ]
   
+  # <概要> 重み付けされた着手可能数を返す
   def placeableCellsNum(self, color):
     res = 0
     for cellPos in self.__emptyCells:
@@ -113,27 +122,61 @@ class Board:
     return res
 
   # ==================== 評価関数関連 ====================
+  # <概要> 位置ベース(othello.Config.WEIGHTS)の評価値を返す.
   def getEval(self, color):
     res = 0
     for i, code in enumerate(self.board[:8]):
       res += self.__index.getEval(i, code, color)
     return res
 
+  # <概要> 端の4辺中の確定石数を返す
   def getSettled(self, color):
     return (self.__index.getSettled(self.board[0],color) + self.__index.getSettled(self.board[7],color) +
             self.__index.getSettled(self.board[8],color) + self.__index.getSettled(self.board[15],color))
 
+  # <概要> 着手可能位置数差(近似値)を返す.
+  #        あるマスが複数方向に対して着手可能である場合でもそれらは独立(重複)してカウントされるため注意.
   def getMobility(self, color):
     res = 0
     for code in self.board:
       res += self.__index.getMobility(code, color)
     return res
 
+  # <概要> 石差を返す(color色が+)
   def getDifference(self, color):
     res = 0
     for code in self.board[:8]:
       res += self.__index.getDifference(code, color)
     return res
+
+  # <概要> logistelloパターンの各値を返す
+  def getFeatures(self):
+    return (
+      self.board[1], self.board[6], self.board[9], self.board[14],    # hori/vert2
+      self.board[2], self.board[5], self.board[10], self.board[13],   # hori/vert3
+      self.board[3], self.board[4], self.board[11], self.board[12],   # hori/vert4
+      self.__first4[self.board[17]], self.__first4[self.board[25]], self.__first4[self.board[28]], self.__first4[self.board[36]], # diag4
+      self.__first5[self.board[18]], self.__first5[self.board[24]], self.__first5[self.board[29]], self.__first5[self.board[35]], # diag5
+      self.__first6[self.board[19]], self.__first6[self.board[23]], self.__first6[self.board[30]], self.__first6[self.board[34]], # diag6
+      self.__first7[self.board[20]], self.__first7[self.board[22]], self.__first7[self.board[31]], self.__first7[self.board[33]], # diag7
+      self.board[21], self.board[32],                                 # diag8
+      ((self.board[1]/3)%3) + self.board[0]*3 + ((self.board[1]/729)%3)*19683,
+      ((self.board[6]/3)%3) + self.board[7]*3 + ((self.board[6]/729)%3)*19683,
+      ((self.board[9]/3)%3) + self.board[8]*3 + ((self.board[9]/729)%3)*19683,
+      ((self.board[14]/3)%3) + self.board[15]*3 + ((self.board[14]/729)%3)*19683, # edge+2x
+      self.__first5[self.board[0]] + self.__first5[self.board[1]]*243,
+      self.__last5[self.board[0]] + self.__last5[self.board[1]]*243,
+      self.__first5[self.board[7]] + self.__first5[self.board[6]]*243,
+      self.__last5[self.board[7]] + self.__last5[self.board[6]]*243,
+      self.__first5[self.board[8]] + self.__first5[self.board[9]]*243,
+      self.__last5[self.board[8]] + self.__last5[self.board[9]]*243,
+      self.__first5[self.board[15]] + self.__first5[self.board[14]]*243,
+      self.__last5[self.board[15]] + self.__last5[self.board[14]]*243,  # corner2x5
+      self.__first3[self.board[0]] + self.__first3[self.board[1]]*27 + self.__first3[self.board[2]]*729,
+      self.__last3[self.board[0]] + self.__last3[self.board[1]]*27 + self.__last3[self.board[2]]*729,
+      self.__first3[self.board[7]] + self.__first3[self.board[6]]*27 + self.__first3[self.board[5]]*729,
+      self.__last3[self.board[7]] + self.__last3[self.board[6]]*27 + self.__last3[self.board[5]]*729  # conrer3x3
+      )
   # ==================================================
 
   # ==================== Undo 関連 =====================
@@ -160,7 +203,22 @@ class Board:
   def modifyEmptyCells(self, pos):
     self.__emptyCells.remove(pos)
 
-
+  def __initLast5(self):
+    l = [0] * 6561
+    for i in range(6561):
+      last5 = i / (3**3)
+      for j in range(5):
+        l[i] += (last5/(3**(4-j))) * (3**j)
+        last5 %= 3**(4-j)
+    return l
+  def __initLast3(self):
+    l = [0] * 6561
+    for i in range(6561):
+      last3 = i / (3**5)
+      for j in range(3):
+        l[i] += (last3/(3**(2-j))) * (3**j)
+        last3 %= 3**(2-j)
+    return l
 
   # 以下マス毎のputとplaceableとtakes関数. 関数ポインタのリストの該当位置に格納して使用される
   def takes0(self, color):

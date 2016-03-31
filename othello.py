@@ -25,8 +25,8 @@ class Config:
   POW3          = [3 ** i for i in range(8)]
 
   AI_COLOR      = WHITE
-  MID_HEIGHT    = 6       # 中盤ゲーム木の高さ
-  LAST_PHASE    = 46      # 終盤読み切りを開始するタイミング
+  MID_HEIGHT    = 3       # 中盤ゲーム木の高さ
+  LAST_PHASE    = 52      # 終盤読み切りを開始するタイミング
   TABLE_SIZE    = 65537   # 置換表のハッシュテーブルサイズ
   WEIGHTS       = [ [ 30, -12,  0, -1, -1,  0, -12,  30],
                     [-12, -15, -3, -3, -3, -3, -15, -12],
@@ -72,15 +72,18 @@ class UndoRequest(Exception):
 
 class Game:
   def __init__(self):
-    self.__board      = board.Board()
-    self.__turn       = Config.BLACK # = 0
-    self.__turnCounter= 0
-    self.__passedFlag = False
-    self.__player     = [None] * 2
+    self.__board  = board.Board(True)
+    self.__player = [None] * 2
     self.__openingBook = book.OpeningBook()
-    self.__player[Config.AI_COLOR]      = AI.AI(self.__board, Config.AI_COLOR, self.__openingBook)
-    self.__player[not Config.AI_COLOR]  = You(self.__board, not Config.AI_COLOR, self.__openingBook)
-    self.__puttedPos = -1
+    self.__player[Config.AI_COLOR]     = AI.AI(self.__board, Config.AI_COLOR, self.__openingBook, None)
+    self.__player[not Config.AI_COLOR] = You(self.__board, not Config.AI_COLOR, self.__openingBook)
+  def init(self):
+    self.__board.init()
+    self.__turn         = Config.BLACK # = 0
+    self.__turnCounter  = 0
+    self.__passedFlag   = False
+    self.__puttedPos    = -1
+
   def run(self):
     while 1:
       self.__board.printBoard(self.__puttedPos, self.__turn%2)
@@ -102,14 +105,16 @@ class Game:
           return
         self.__passedFlag = True
       self.__turn += 1
+
   def output(self):
     self.__board.printResult()
-  def __undo(self):
-    self.__board.loadState()
 
+  def __undo(self):
+    self.__board.loadState()  
 
 def main():
   game = Game()
+  game.init()
   game.run()
   game.output()
 
