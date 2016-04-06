@@ -1,5 +1,5 @@
 # -*- coding:utf-8 -*-
-# BitBoard : 
+# BitBoard :
 # 2つの64bitの整数値で表現されたボード.
 # 盤面の処理をbit演算で実装できるため高速.
 # 詳しくは,
@@ -44,7 +44,7 @@ class Board:
           self.__screen.blit(self.black_img, self.black_rect.move(xy))
         if state == othello.Config.WHITE:
           self.__screen.blit(self.white_img, self.white_rect.move(xy))
-    pygame.display.flip()
+    pygame.display.flip()　
 
   # <概要> 駒の数をプリントする
   def printResult(self):
