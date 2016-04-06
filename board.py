@@ -61,19 +61,19 @@ class Board:
   # <返値> int(0~6)
   def takes(self, pos, color): # TODO
     pat = self.__getTakePattern(pos, color)
-    count = (pat & int('0x5555555555555555', 16)) + ((pat >> 1)& int('0x5555555555555555',16))
-    count = (count & int('0x3333333333333333', 16)) + ((count >> 2)　& int('0x3333333333333333', 16))
-    count = (count & int('0x0f0f0f0f0f0f0f0f', 16)) + ((count >> 4)　& int('0x0f0f0f0f0f0f0f0f', 16))
-    count = (count & int('0x00ff00ff00ff00ff', 16)) + ((count >> 8)　& int('0x00ff00ff00ff00ff', 16))
-    count = (count & int('0x0000ffff0000ffff', 16)) + ((count >> 16)　& int('0x0000ffff0000ffff', 16))
-    count = (count & int('0x00000000ffffffff', 16)) + ((count >> 32)　& int('0x00000000ffffffff', 16))
+    count = (pat & int('0x5555555555555555', 16)) + ((pat >> 1) & int('0x5555555555555555',16))
+    count = (count & int('0x3333333333333333', 16)) + ((count >> 2) & int('0x3333333333333333', 16))
+    count = (count & int('0x0f0f0f0f0f0f0f0f', 16)) + ((count >> 4) & int('0x0f0f0f0f0f0f0f0f', 16))
+    count = (count & int('0x00ff00ff00ff00ff', 16)) + ((count >> 8) & int('0x00ff00ff00ff00ff', 16))
+    count = (count & int('0x0000ffff0000ffff', 16)) + ((count >> 16) & int('0x0000ffff0000ffff', 16))
+    count = (count & int('0x00000000ffffffff', 16)) + ((count >> 32) & int('0x00000000ffffffff', 16))
     return count
 
   # <概要> 位置posにcolor色の駒を置いて相手の駒を裏返す
   # <引数> pos:int(0~63), color:int(0~1){othello.Config.BLACK,WHITE}
   def put(self, pos, color): # TODO
     pat = self.__getTakePattern(pos, color)
-    posbit = 1 << (63 - pos)
+    posbit = 1 << pos
     if color == 0:
       self.black ^= posbit|pat
       self.white ^= pat
@@ -83,7 +83,7 @@ class Board:
 
 
   def __getTakePattern(self, pos, color):
-    posbit = 1 << (63 - pos)
+    posbit = 1 << pos
     if color == 0:
       me = self.black
       enemy = self.white
@@ -97,7 +97,7 @@ class Board:
     pat_tmp = 0
     mask = int('0x7e7e7e7e7e7e7e7e', 16)
     while ((posbit >> i) & mask & enemy) != 0 :
-      pat_tmp = (posbit >> i)
+      pat_tmp |= (posbit >> i)
       i+=1
     if ((posbit >> i) & me) != 0:
       pat |= pat_tmp
@@ -107,7 +107,7 @@ class Board:
     pat_tmp = 0
     mask = int('0x7e7e7e7e7e7e7e7e', 16)
     while ((posbit << i) & mask & enemy) != 0 :
-      pat_tmp = (posbit << i)
+      pat_tmp |= (posbit << i)
       i+=1
     if ((posbit << i) & me) != 0:
       pat |= pat_tmp
@@ -117,7 +117,7 @@ class Board:
     pat_tmp = 0
     mask = int('0x00ffffffffffff00', 16)
     while ((posbit << 8*i) & mask & enemy) != 0 :
-      pat_tmp = (posbit << 8*i)
+      pat_tmp |= (posbit << 8*i)
       i+=1
     if ((posbit << 8*i) & me) != 0:
       pat |= pat_tmp
@@ -127,7 +127,7 @@ class Board:
     pat_tmp = 0
     mask = int('0x00ffffffffffff00', 16)
     while ((posbit >> 8*i) & mask & enemy) != 0 :
-      pat_tmp = (posbit >> 8*i)
+      pat_tmp |= (posbit >> 8*i)
       i+=1
     if ((posbit >> 8*i) & me) != 0:
       pat |= pat_tmp
@@ -137,7 +137,7 @@ class Board:
     pat_tmp = 0
     mask = int('0x007e7e7e7e7e7e00', 16)
     while ((posbit << 7*i) & mask & enemy) != 0 :
-      pat_tmp = (posbit << 7*i)
+      pat_tmp |= (posbit << 7*i)
       i+=1
     if ((posbit << 7*i) & me) != 0:
       pat |= pat_tmp
@@ -147,7 +147,7 @@ class Board:
     pat_tmp = 0
     mask = int('0x007e7e7e7e7e7e00', 16)
     while ((posbit << 9*i) & mask & enemy) != 0 :
-      pat_tmp = (posbit << 9*i)
+      pat_tmp |= (posbit << 9*i)
       i+=1
     if ((posbit << 9*i) & me) != 0:
       pat |= pat_tmp
@@ -157,7 +157,7 @@ class Board:
     pat_tmp = 0
     mask = int('0x007e7e7e7e7e7e00', 16)
     while ((posbit >> 9*i) & mask & enemy) != 0 :
-      pat_tmp = (posbit >> 9*i)
+      pat_tmp |= (posbit >> 9*i)
       i+=1
     if ((posbit >> 9*i) & me) != 0:
       pat |= pat_tmp
@@ -167,7 +167,7 @@ class Board:
     pat_tmp = 0
     mask = int('0x007e7e7e7e7e7e00', 16)
     while ((posbit >> 7*i) & mask & enemy) != 0 :
-      pat_tmp = (posbit >> 7*i)
+      pat_tmp |= (posbit >> 7*i)
       i+=1
     if ((posbit >> 7*i) & me) != 0:
       pat |= pat_tmp
@@ -178,14 +178,14 @@ class Board:
   # <引数> pos:int(0~63), color:int(0~1){othello.Config.BLACK,WHITE}
   # <返値> bool
   def placeable(self, pos, color): # TODO
-    cellPos = self.placeblleCells(color)
+    cellPos = self.placeableCells(color)
     return pos in cellPos
 
     #<概要>color色の駒を置くことができる場所を返す
     #<引数>color:int(0~1){othello.Config.BLACK,WHITE}
     #<返り値>list(size:64)
   def placeableCells(self, color): # TODO
-  cellPos = [0]*64
+    cellPos = []
     if color == 0:
       me = self.black
       enemy = self.white
@@ -197,61 +197,61 @@ class Board:
     mask = enemy & int('0x7e7e7e7e7e7e7e7e', 16)
     t = mask & (me << 1)
     for i in range(5):
-      t |= mask & (me << 1)
+      t |= mask & (t << 1)
     valid = blank & (t << 1)
 
     #左方向
     mask = enemy & int('0x7e7e7e7e7e7e7e7e', 16)
     t = mask & (me >> 1)
     for i in range(5):
-      t |= mask & (me >> 1)
+      t |= mask & (t >> 1)
     valid |= blank & (t >> 1)
 
     #上方向
     mask = enemy & int('0x00ffffffffffff00', 16)
     t = mask & (me << 8)
     for i in range(5):
-      t |= mask & (me << 8)
+      t |= mask & (t << 8)
     valid |= blank & (t << 8)
 
     #下方向
     mask = enemy & int('0x00ffffffffffff00', 16)
     t = mask & (me >> 8)
     for i in range(5):
-      t |= mask & (me >> 8)
+      t |= mask & (t >> 8)
     valid |= blank & (t >> 8)
 
     #右上方向
     mask = enemy & int('0x007e7e7e7e7e7e00', 16)
     t = mask & (me << 7)
     for i in range(5):
-      t |= mask & (me << 7)
+      t |= mask & (t << 7)
     valid |= blank & (t << 7)
 
     #左上方向
     mask = enemy & int('0x007e7e7e7e7e7e00', 16)
     t = mask & (me << 9)
     for i in range(5):
-      t |= mask & (me << 9)
+      t |= mask & (t << 9)
     valid |= blank & (t << 9)
 
     #右下方向
     mask = enemy & int('0x007e7e7e7e7e7e00', 16)
     t = mask & (me >> 9)
     for i in range(5):
-      t |= mask & (me >> 9)
+      t |= mask & (t >> 9)
     valid |= blank & (t >> 9)
 
     #左下方向
     mask = enemy & int('0x007e7e7e7e7e7e00', 16)
     t = mask & (me >> 7)
     for i in range(5):
-      t |= mask & (me >> 7)
+      t |= mask & (t >> 7)
     valid |= blank & (t >> 7)
 
     for i in range(64):
       if valid & 1:
-        cellPos[63-i] = 1
+        cellPos.append(i)
       valid >>= 1
     return cellPos
 
