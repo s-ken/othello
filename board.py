@@ -3,6 +3,7 @@
 import pygame
 import othello
 import index
+import bisect
 
 class Board:
   def __init__(self, visible):
@@ -26,6 +27,14 @@ class Board:
                             6560, 6560, 6560, 6560, 6533, 6344, 6533, 6560, 6560, 6560, 6560,   # 斜め45°
                             6560, 6560, 6560, 6560, 6506, 6452, 6506, 6560, 6560, 6560, 6560 ]  # 斜め135°
     self.INITIAL_EMPCELL = [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,29,30,31,32,33,34,37,38,39,40,41,42,43,44,45,46,47,48,49,50,51,52,53,54,55,56,57,58,59,60,61,62,63]
+    self.INITIAL_EMPFLAG = [  True,True,True,True,True,True,True,True,
+                              True,True,True,True,True,True,True,True,
+                              True,True,True,True,True,True,True,True,
+                              True,True,True,False,False,True,True,True,
+                              True,True,True,False,False,True,True,True,
+                              True,True,True,True,True,True,True,True,
+                              True,True,True,True,True,True,True,True,
+                              True,True,True,True,True,True,True,True ]
     self.board 	  = [6560] * 38
     self.__index  = index.Index()
     self.__first3 = [i % (3**3) for i in range(6561)] # 3進8bitから下位3bitを得る
@@ -63,14 +72,16 @@ class Board:
 
   def init(self):
     self.board            = list(self.INITIAL_STATE)
-    self.__emptyCells     = list(self.INITIAL_EMPCELL)
+    self.emptyCells       = list(self.INITIAL_EMPCELL)
+    self.emptyFlag        = list(self.INITIAL_EMPFLAG)
     self.__prevState      = None   # Undo用
     self.__prevEmptyCells = None
+    self.__prevEmptyFlag  = None
     
   def at(self, x, y):
     return (self.board[y] % (3 ** (x + 1))) / (3 ** x)
 
-  def printBoard(self, puttedPos, turn): # TODO
+  def printBoard(self, puttedPos, turn):
     for x in range(othello.Config.CELL_NUM):
       for y in range(othello.Config.CELL_NUM):
         xy = (x*othello.Config.CELL_WIDTH, y*othello.Config.CELL_WIDTH)
@@ -103,13 +114,16 @@ class Board:
     print "BLACK:", counter[othello.Config.BLACK], " WHITE:", counter[othello.Config.WHITE]
 
   def placeableCells(self, color):
-    return [cellPos for cellPos in self.__emptyCells if self.placeable[cellPos](color) ]
+    return [pos for pos in self.emptyCells if self.placeable[pos](color) ]
+    #return [pos for pos in xrange(64) if self.emptyFlag[pos] and self.placeable[pos](color) ]
   
   # <概要> 重み付けされた着手可能数を返す
   def placeableCellsNum(self, color):
     res = 0
-    for cellPos in self.__emptyCells:
-      if self.placeable[cellPos](color):
+    for pos in self.emptyCells:
+      if self.placeable[pos](color):
+    #for pos in xrange(64):
+    #  if self.emptyFlag[pos] and self.placeable[pos](color):
         res += 1
     if self.placeable[0](color):
       res += 1
@@ -120,6 +134,25 @@ class Board:
     if self.placeable[63](color):
       res += 1
     return res
+
+    # <概要> 空マスリストの更新
+  def modifyEmptyCells(self, pos):
+    self.emptyCells.remove(pos)
+    #self.emptyCells.pop(self.__biSearch(pos))
+    #self.emptyFlag[pos] = False
+
+  def __biSearch(self, pos):
+    l = 0
+    r = len(self.emptyCells)
+    m = r / 2
+    while l <= r:
+      if self.emptyCells[m] == pos:
+        return m
+      if self.emptyCells[m] > pos:
+        r = m - 1
+      else:
+        l = m + 1
+      m = (l + r) / 2
 
   # ==================== 評価関数関連 ====================
   # <概要> 位置ベース(othello.Config.WEIGHTS)の評価値を返す.
@@ -187,21 +220,15 @@ class Board:
     self.board = list(state)
 
   def storeState(self):
-    self.__prevState = self.getState()
-    self.__prevEmptyCells = list(self.__emptyCells)
+    self.__prevState      = self.getState()
+    self.__prevEmptyCells = list(self.emptyCells)
+    self.__prevEmptyFlag  = list(self.emptyFlag)
 
   def loadState(self):
     self.restoreState(self.__prevState)
-    self.__emptyCells = self.__prevEmptyCells
+    self.emptyCells = self.__prevEmptyCells
+    self.emptyFlag  = self.__prevEmptyFlag
   # ==================================================
-
-  # <概要> 空マスリストの更新
-  # <詳細> 本来ならこの処理をput()に入れてしまいたいところだが
-  #        put()はゲーム木の探索過程で何度も呼び出されるため,ちょっとそれきつい感じ.
-  #        ということでpublicな関数にしてPlayerのtakeTurn()内のput() <-実際の盤面に駒が置かれる
-  #        のあとにこれを呼び出すことにした
-  def modifyEmptyCells(self, pos):
-    self.__emptyCells.remove(pos)
 
   def __initLast5(self):
     l = [0] * 6561

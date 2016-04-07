@@ -5,6 +5,7 @@ sys.path.append(os.pardir)
 import board
 import AI
 import random
+import time
 
 class Learner:
   STAGE_WIDTH = 4
@@ -16,14 +17,21 @@ class Learner:
   STEPSZ      = 0.01 # 重み更新のステップサイズ係数
   RANDOMBEGIN = 8    # ゲーム最初のランダム手数
   RANDOMMOVE  = 0.01 # AIがランダムにコマを打つ確率
+  MIDTREEHEIGHT = 3
+  LASTPHASE     = 54
 
   def __init__(self):
     self.__weight    = self.__loadWeights() # Logistelloパターン重み
     self.__board     = board.Board(False)
-    self.__player    = [AI.AI(self.__board, 0, None, self.__weight),AI.AI(self.__board, 1, None, self.__weight)]
+    self.__player    = [AI.AI(self.__board,0,None,self.__weight,Learner.MIDTREEHEIGHT,Learner.LASTPHASE,False),AI.AI(self.__board,1,None,self.__weight,Learner.MIDTREEHEIGHT,Learner.LASTPHASE,False)]
     self.__symmTable = self.__initSymmTable() # 各パターンの対称形のコードを格納するテーブル
-  
+    self.__gameCounter = 0
+    self.winB      = 0
+    self.winW      = 0
+    self.draw      = 0
+
   def init(self):
+    self.__gameCounter += 1
     self.__board.init()
     self.__turn         = 0
     self.__turnCounter  = 0
@@ -31,6 +39,8 @@ class Learner:
     self.__boardState   = [None] * 60
     self.__player[0].setWeight(self.__weight)
     self.__player[1].setWeight(self.__weight)
+    self.__player[0].changeEndPhaseBeginAt(Learner.LASTPHASE+(self.__gameCounter%2))
+    self.__player[1].changeEndPhaseBeginAt(Learner.LASTPHASE+(self.__gameCounter%2))
 
   # <概要> AI同士で一試合プレイする
   def run(self):
@@ -56,14 +66,24 @@ class Learner:
         self.__turnCounter += 1
       else:
         if self.__passedFlag:  # 二人ともパス->終了
-          return
+          break
         self.__passedFlag = True
       self.__turn += 1
+    result = self.__board.getDifference(0)
+    if result > 0:
+      self.winB += 1
+    elif result < 0:
+      self.winW += 1
+    else:
+      self.draw += 1
+
 
   # <概要> 保存されている一試合分の記録(boardState)をもとにlogistello重みを更新する
   def updateWeight(self):
     t = float(self.__board.getDifference(0))
     for turn in range(60):
+      if self.__boardState[turn] is None:
+        break
       stage = turn / 4
       self.__board.restoreState(self.__boardState[turn])
       feature = self.__board.getFeatures()
@@ -90,12 +110,15 @@ class Learner:
   # <概要> 重みをファイルに保存する
   def saveWeight(self):
     for stage in range(Learner.STAGES):
+      x = 0.0
       f = open("../wei/w"+str(stage)+".txt", "w")
       for feature in range(11):
         for pattern in range(Learner.PATTARNS[feature]):
           f.write(str(self.__weight[stage][feature][pattern])+" ")
+          x += self.__weight[stage][feature][pattern]
         f.write("\n")
       f.close()
+      print x
 
   # <概要> symmTableを初期化する
   def __initSymmTable(self):
@@ -141,14 +164,21 @@ class Learner:
 def main():
   learner = Learner()
   i = 1
+  tic = time.time()
   while True:
-    print "game:", i
+    #print "game:", i
     learner.init()
     learner.run()
     learner.updateWeight()
     if not (i % 100): # 100試合毎に重みを保存
-      print "save."
+      print "game:", i, " ************"
       learner.saveWeight()
+      print "B:", float(learner.winB) / (learner.winW + learner.draw)
+      print "W:", float(learner.winW) / (learner.winB + learner.draw)
+      print "D:", float(learner.draw) / (learner.winW + learner.winB)
+      toc = time.time()
+      print ("time: {0}".format(toc - tic)+"[sec]")
+      tic = toc
     i += 1
 
 if __name__ == "__main__":
