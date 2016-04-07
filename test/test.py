@@ -1,8 +1,12 @@
 # -*- coding:utf-8 -*-
 
+# AI同士で1試合プレイさせる
+# 時間計測用
+
 import sys,os
 sys.path.append(os.pardir)
-import board
+import indexBoard
+import bitBoard
 import AI
 import random
 import time
@@ -12,12 +16,15 @@ class Test:
   FEATURES    = 11
   PATTARNS    = [3**8]*3 + [3**4, 3**5, 3**6, 3**7, 3**8] + [3**10]*2 + [3**9]
   
-  MIDTREEHEIGHT = 6
-  LASTPHASE     = 44
+  MIDTREEHEIGHT = 1
+  LASTPHASE     = 46
+
+  TEST_ENDSEARCH = True
+  BITBOARD       = True
 
   def __init__(self):
     self.__weight    = self.__loadWeights() # Logistelloパターン重み
-    self.__board     = board.Board(False)
+    self.__board     = indexBoard.IndexBoard(False)   
     self.__player    = [  AI.AI(  self.__board,
                                   0,
                                   None,
@@ -46,6 +53,16 @@ class Test:
   def run(self):
     while 1:
       if self.__turnCounter == Test.LASTPHASE:
+        if not Test.TEST_ENDSEARCH:
+          break
+        if Test.BITBOARD:
+          cells = self.__board.getCells()
+          empcells = list(self.__board.emptyCells)
+          self.__board = bitBoard.BitBoard(False)  # boardをindexからbitに変更
+          self.__board.setState(cells, empcells)
+          self.__player[0].setBoard(self.__board)
+          self.__player[1].setBoard(self.__board)
+      if self.__turnCounter == Test.LASTPHASE+1:
         break
       if self.__player[self.__turn%2].canPut():  # 置ける場所があればTrue
         self.__player[self.__turn%2].takeTurn(self.__turnCounter)

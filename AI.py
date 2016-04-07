@@ -17,6 +17,11 @@ class AI():
     else:
       self.__brain = BookBrain(board, color, openingBook)
 
+  def setBoard(self, board):  # BitBoard切り替え用
+    self.board = board
+    self.__endBrain.setBoard(board)
+    self.__middleBrain.setBoard(board)
+
   def changeEndPhaseBeginAt(self, endPhaseBeginAt):
     self.__endPhaseBeginAt = endPhaseBeginAt
 
@@ -38,15 +43,9 @@ class AI():
       if turnCounter >= self.__endPhaseBeginAt:
         self.__brain = self.__endBrain
     pos = self.__brain.evaluate(turnCounter)
-    self.board.put[pos](self.color)  # 位置(x,y)に駒を置く
+    self.board.put(pos,self.color)
     self.board.modifyEmptyCells(pos)
     return pos
-
-  def __changeBrain(self):
-    if self.__brain is self.__middleBrain:
-      self.__brain = self.__endBrain
-    else:
-      self.__brain = self.__middleBrain
 
 class BookBrain():
   def __init__(self, board, color, openingBook):

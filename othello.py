@@ -8,7 +8,8 @@
 import pygame
 from pygame.locals import *
 import sys
-import board
+import bitBoard
+import indexBoard
 import book
 import AI
 
@@ -25,8 +26,8 @@ class Config:
   POW3          = [3 ** i for i in range(8)]
 
   AI_COLOR      = BLACK
-  MID_HEIGHT    = 2       # 中盤ゲーム木の高さ
-  LAST_PHASE    = 42      # 終盤読み切りを開始するタイミング
+  MID_HEIGHT    = 5       # 中盤ゲーム木の高さ
+  LAST_PHASE    = 46      # 終盤読み切りを開始するタイミング
   TABLE_SIZE    = 65537   # 置換表のハッシュテーブルサイズ
   WEIGHTS       = [ [ 30, -12,  0, -1, -1,  0, -12,  30],
                     [-12, -15, -3, -3, -3, -3, -15, -12],
@@ -36,6 +37,7 @@ class Config:
                     [  0,  -3,  0, -1, -1,  0,  -3,   0],
                     [-12, -15, -3, -3, -3, -3, -15, -12],
                     [ 30, -12,  0, -1, -1,  0, -12,  30] ]
+  BITBOARD      = True    # 終盤探索でBitBoardを使用するか否か
 
 class You():
   def __init__(self, board, color, openingBook):
@@ -57,15 +59,17 @@ class You():
           xpos = int(pygame.mouse.get_pos()[0]/Config.CELL_WIDTH)
           ypos = int(pygame.mouse.get_pos()[1]/Config.CELL_WIDTH)
           pos  = xpos + ypos * Config.CELL_NUM
-          if self.board.placeable[pos](self.color):
+          if self.board.placeable(pos,self.color):
             self.board.storeState()   # boardの要素のstateを書き換える前に,各stateを保存する
-            self.board.put[pos](self.color)  # 位置(xpos,ypos)に駒を置く
+            self.board.put(pos,self.color)
             self.board.modifyEmptyCells(pos)
             if self.openingBook.isValid():
               self.openingBook.proceed(xpos, ypos)  # 定石通りかどうかチェック
             return pos
           else:
             print "ERROR: You cannot put here."   # クリック地点が置けない場所ならループ継続
+  def setBoard(self, board):  # BitBoard切り替え用
+    self.board = board
 
 class UndoRequest(Exception):
   def __init__(self): 0
@@ -73,7 +77,7 @@ class UndoRequest(Exception):
 
 class Game:
   def __init__(self):
-    self.__board  = board.Board(True)
+    self.__board  = indexBoard.IndexBoard(True)
     self.__player = [None] * 2
     self.__openingBook = book.OpeningBook()
     self.__player[Config.AI_COLOR]     = AI.AI(self.__board, Config.AI_COLOR, self.__openingBook, None, Config.MID_HEIGHT, Config.LAST_PHASE, True)
@@ -90,6 +94,14 @@ class Game:
       self.__board.printBoard(self.__puttedPos, self.__turn%2)
       if self.__turnCounter == 60:
         break
+      if self.__turnCounter == Config.LAST_PHASE and Config.BITBOARD and isinstance(self.__board, indexBoard.IndexBoard):
+        cells = self.__board.getCells()
+        empcells = list(self.__board.emptyCells)
+        self.__board = bitBoard.BitBoard(True)  # boardをindexからbitに変更
+        self.__board.setState(cells, empcells)
+        self.__player[0].setBoard(self.__board)
+        self.__player[1].setBoard(self.__board)
+        self.__board.printBoard(self.__puttedPos, self.__turn%2)
       if self.__player[self.__turn%2].canPut():  # 置ける場所があればTrue
         try:
           print "Turn:", self.__turnCounter

@@ -14,6 +14,9 @@ class EndGameBrain():
     self.__visible = visible
     #self.__transpositionTable = None
 
+  def setBoard(self, board):  # BitBoard切り替え用
+    self.board = board
+
   # <概要> 現盤面で打てる位置に対してそれぞれ評価関数を呼び出し,
   #        その値が最大となる位置を返す.
   def evaluate(self, turnCounter):
@@ -28,7 +31,7 @@ class EndGameBrain():
     a = -othello.Config.INF
     for pos in placeableCells:
       self.nodeCounter += 1
-      self.board.put[pos](self.color)
+      self.board.put(pos,self.color)
       self.board.modifyEmptyCells(pos)
       value = -self.__negaScout(not self.color, 59 - turnCounter, -othello.Config.INF, -a, False)
       self.board.restoreState(stateCpy)
@@ -42,7 +45,7 @@ class EndGameBrain():
       print ("time: {0}".format(t)+"[sec]")
       print "node:", self.nodeCounter
       if t != 0:
-       print "nps:", self.nodeCounter / t
+       print "nps:", self.nodeCounter / t   # nodes per second
       print "expectation:", maxValue
     return res
 
@@ -56,7 +59,7 @@ class EndGameBrain():
       stateCpy = self.board.getState()
       emptyCpy = list(self.board.emptyCells)
       placeableCells = self.__moveOrdering(placeableCells, color)
-      self.board.put[placeableCells[0]](color)
+      self.board.put(placeableCells[0],color)
       self.board.modifyEmptyCells(placeableCells[0])
       maxValue = value = -self.__negaScout(not color, height - 1, -beta, -alpha, False)
       self.board.restoreState(stateCpy)
@@ -67,7 +70,7 @@ class EndGameBrain():
         alpha = value
       for pos in placeableCells[1:]:
         self.nodeCounter += 1
-        self.board.put[pos](color)
+        self.board.put(pos,color)
         self.board.modifyEmptyCells(pos)
         value = -self.__negaScout(not color, height - 1, (-alpha) - 1, -alpha, False)
         if value >= beta:
@@ -94,10 +97,10 @@ class EndGameBrain():
       a = alpha
       count = 0
       for pos in list(self.board.emptyCells):
-        if self.board.placeable[pos](color):
+        if self.board.placeable(pos,color):
           self.nodeCounter += 1
           count += 1
-          self.board.put[pos](color)
+          self.board.put(pos,color)
           self.board.modifyEmptyCells(pos)
           value = -self.__alphaBeta(not color, height - 1, -beta, -a, False)
           self.board.restoreState(stateCpy)
@@ -118,13 +121,13 @@ class EndGameBrain():
   # <返値> int
   def __alphaBeta(self, color, height, alpha, beta, passed):
     if height == 1: # 空きマスラスト1 --> ラスト1手最適化
-      if self.board.placeable[self.board.emptyCells[0]](color):
+      if self.board.placeable(self.board.emptyCells[0],color):
         self.nodeCounter += 1
         return self.__evaluateLeafLast1(color, self.board.emptyCells[0])
       else:
         if passed:
           return self.__evaluateLeaf(color) # 連続パスでゲーム終了
-        if self.board.placeable[self.board.emptyCells[0]](not color):
+        if self.board.placeable(self.board.emptyCells[0],not color):
           self.nodeCounter += 1
           return -self.__evaluateLeafLast1(not color, self.board.emptyCells[0])
         else:
@@ -136,9 +139,9 @@ class EndGameBrain():
       a = alpha
       count = 0
       for pos in list(self.board.emptyCells):
-        if self.board.placeable[pos](color):
+        if self.board.placeable(pos,color):
           self.nodeCounter += 1
-          self.board.put[pos](color)
+          self.board.put(pos,color)
           self.board.modifyEmptyCells(pos)
           value = -self.__alphaBeta(not color, height - 1, -beta, -a, False)
           self.board.restoreState(stateCpy)
@@ -160,7 +163,7 @@ class EndGameBrain():
     stateCpy = self.board.getState()  # 盤面コピー
     values = [0] * len(cellPosList)
     for i, pos in enumerate(cellPosList):
-      self.board.put[pos](color)
+      self.board.put(pos,color)
       #values[i] = self.board.getMobility(not color)
       values[i] = self.board.placeableCellsNum(not color)
       self.board.restoreState(stateCpy)
@@ -171,4 +174,4 @@ class EndGameBrain():
     return self.board.getDifference(color)
 
   def __evaluateLeafLast1(self, color, pos):
-    return self.board.getDifference(color) + (self.board.takes[pos](color) << 1) + 1
+    return self.board.getDifference(color) + (self.board.takes(pos,color) << 1) + 1

@@ -23,6 +23,9 @@ class MidGameBrain():
     else:
       self.__weight = weight  # Logistello重み
 
+  def setBoard(self, board):  # BitBoard切り替え用
+    self.board = board
+
   # <概要> 現盤面で打てる位置に対してそれぞれ評価関数を呼び出し,
   #        その値が最大となる位置を返す.
   def evaluate(self, turnCounter):
@@ -43,7 +46,7 @@ class MidGameBrain():
     alpha = value
     beta  = othello.Config.INF
     for pos in placeableCells[1:]:
-      self.board.put[pos](self.color)
+      self.board.put(pos,self.color)
       value = -self.__negaScout(not self.color, self.__treeHeight-1, (-alpha) - 1, -alpha, False, turnCounter+1)
       if value > alpha:
         alpha = value
@@ -60,11 +63,9 @@ class MidGameBrain():
     return res
     """
     for pos in placeableCells:
-      self.board.put[pos](self.color)
-      self.board.modifyEmptyCells(pos)
+      self.board.put(pos,self.color)
       value = -self.__alphaBeta(not self.color, self.__treeHeight-1, -othello.Config.INF, -a, False, turnCounter+1)
       self.board.restoreState(stateCpy)
-      self.board.emptyCells = list(emptyCpy)
       if value > maxValue:
         a = max(a, value)
         maxValue = value
@@ -96,7 +97,7 @@ class MidGameBrain():
       if value > alpha:
         alpha = value
       for pos in placeableCells[1:]:
-        self.board.put[pos](color)
+        self.board.put(pos,color)
         value = -self.__negaScout(not color, height-1, (-alpha) - 1, -alpha, False, turnCounter+1)
         if value >= beta:
           self.board.restoreState(stateCpy)
@@ -122,7 +123,7 @@ class MidGameBrain():
       stateCpy = self.board.getState()  # 盤面コピー
       maxValue = -othello.Config.INF
       for pos in placeableCells:
-        self.board.put[pos](color)
+        self.board.put(pos,color)
         value = -self.__alphaBeta(not color, height-1, -beta, -alpha, False, turnCounter+1)
         self.board.restoreState(stateCpy)
         if value >= beta:
@@ -137,8 +138,8 @@ class MidGameBrain():
       a = alpha
       count = 0
       for pos in self.board.emptyCells:
-        if self.board.placeable[pos](color):
-          self.board.put[pos](color)
+        if self.board.placeable(pos,color):
+          self.board.put(pos,color)
           value = -self.__alphaBetaNoMO(not color, height - 1, -beta, -a, False, turnCounter+1)
           self.board.restoreState(stateCpy)
           if value >= beta:
@@ -171,7 +172,7 @@ class MidGameBrain():
       stateCpy = self.board.getState()  # 盤面コピー
       maxValue = -othello.Config.INF
       for pos in placeableCells:
-        self.board.put[pos](color)
+        self.board.put(pos,color)
         value = -self.__alphaBeta(not color, height-1, -beta, -alpha, False, turnCounter+1)
         self.board.restoreState(stateCpy)
         if value >= beta:
@@ -186,8 +187,8 @@ class MidGameBrain():
     a = alpha
     count = 0
     for pos in self.board.emptyCells:
-      if self.board.placeable[pos](color):
-        self.board.put[pos](color)
+      if self.board.placeable(pos,color):
+        self.board.put(pos,color)
         value = -self.__alphaBetaNoMO(not color, height - 1, -beta, -a, False, turnCounter+1)
         self.board.restoreState(stateCpy)
         if value >= beta:
@@ -210,8 +211,8 @@ class MidGameBrain():
     a = alpha
     count = 0
     for pos in self.board.emptyCells:
-      if self.board.placeable[pos](color):
-        self.board.put[pos](color)
+      if self.board.placeable(pos,color):
+        self.board.put(pos,color)
         value = -self.__alphaBetaNoMO(not color, height - 1, -beta, -a, False, turnCounter+1)
         self.board.restoreState(stateCpy)
         if value >= beta:
@@ -233,7 +234,7 @@ class MidGameBrain():
     stateCpy = self.board.getState()  # 盤面コピー
     values = [0] * len(cellPosList)
     for i, pos in enumerate(cellPosList):
-      self.board.put[pos](color)
+      self.board.put(pos,color)
       values[i] = self.__evaluateLeaf(color, turnCounter+1)
       #values[i] = -self.__alphaBeta(not color, 2, -1024, 1024, False, turnCounter+1)
       self.board.restoreState(stateCpy)
@@ -246,7 +247,7 @@ class MidGameBrain():
     stateCpy = self.board.getState()  # 盤面コピー
     values = [0] * len(cellPosList)
     for i, pos in enumerate(cellPosList):
-      self.board.put[pos](color)
+      self.board.put(pos,color)
       values[i] = self.__evaluateLeaf(color, turnCounter+1)
       #values[i] = -self.__alphaBeta(not color, 2, -1024, 1024, False, turnCounter+1)
       self.board.restoreState(stateCpy)
@@ -254,13 +255,13 @@ class MidGameBrain():
 
   """
   # <概要> http://uguisu.skr.jp/othello/5-1.html の位置重み付け + 確定石数差*8 + 置ける場所の数の差*4
-  def __evaluateLeaf(self, color):
+  def __evaluateLeaf(self, color, turnCounter):
     res =  self.board.getEval(color)
     res += self.board.getSettled(color) << 3
     res += self.board.getMobility(color) << 1 # 着手可能候補数
     return res
   """
-
+  
   # <概要> logistelloパターン+着手可能数差による評価
   def __evaluateLeaf(self, color, turnCounter):
     feature = self.board.getFeatures()
@@ -299,6 +300,7 @@ class MidGameBrain():
         self.__weight[stage][10][feature[44]]+
         self.__weight[stage][10][feature[45]]+
         self.board.getMobility(0))
+
   
   # <概要> 重みをロードする
   def __loadWeights(self):

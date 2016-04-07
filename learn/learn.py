@@ -2,7 +2,7 @@
 
 import sys,os
 sys.path.append(os.pardir)
-import board
+import indexBoard
 import AI
 import random
 import time
@@ -22,7 +22,7 @@ class Learner:
 
   def __init__(self):
     self.__weight    = self.__loadWeights() # Logistelloパターン重み
-    self.__board     = board.Board(False)
+    self.__board     = indexBoard.IndexBoard(False)
     self.__player    = [AI.AI(self.__board,0,None,self.__weight,Learner.MIDTREEHEIGHT,Learner.LASTPHASE,False),AI.AI(self.__board,1,None,self.__weight,Learner.MIDTREEHEIGHT,Learner.LASTPHASE,False)]
     self.__symmTable = self.__initSymmTable() # 各パターンの対称形のコードを格納するテーブル
     self.__gameCounter = 0
@@ -46,7 +46,7 @@ class Learner:
   def run(self):
     for i in range(Learner.RANDOMBEGIN):  # 最初の数手はランダムに打つ
       pos = random.choice(self.__board.placeableCells(self.__turn%2))
-      self.__board.put[pos](self.__turn%2)
+      self.__board.put(pos,self.__turn%2)
       self.__board.modifyEmptyCells(pos)
       self.__boardState[self.__turnCounter] = self.__board.getState()
       self.__turn += 1
@@ -57,7 +57,7 @@ class Learner:
       if self.__player[self.__turn%2].canPut():  # 置ける場所があればTrue
         if random.random() < Learner.RANDOMMOVE:  # ある確率でランダムに打つ
           pos = random.choice(self.__board.placeableCells(self.__turn%2))
-          self.__board.put[pos](self.__turn%2)
+          self.__board.put(pos,self.__turn%2)
           self.__board.modifyEmptyCells(pos)
         else:
           self.__player[self.__turn%2].takeTurn(self.__turnCounter)

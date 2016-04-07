@@ -3,9 +3,8 @@
 import pygame
 import othello
 import index
-import bisect
 
-class Board:
+class IndexBoard:
   def __init__(self, visible):
     if visible:
       pygame.init()
@@ -27,14 +26,6 @@ class Board:
                             6560, 6560, 6560, 6560, 6533, 6344, 6533, 6560, 6560, 6560, 6560,   # 斜め45°
                             6560, 6560, 6560, 6560, 6506, 6452, 6506, 6560, 6560, 6560, 6560 ]  # 斜め135°
     self.INITIAL_EMPCELL = [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,29,30,31,32,33,34,37,38,39,40,41,42,43,44,45,46,47,48,49,50,51,52,53,54,55,56,57,58,59,60,61,62,63]
-    self.INITIAL_EMPFLAG = [  True,True,True,True,True,True,True,True,
-                              True,True,True,True,True,True,True,True,
-                              True,True,True,True,True,True,True,True,
-                              True,True,True,False,False,True,True,True,
-                              True,True,True,False,False,True,True,True,
-                              True,True,True,True,True,True,True,True,
-                              True,True,True,True,True,True,True,True,
-                              True,True,True,True,True,True,True,True ]
     self.board 	  = [6560] * 38
     self.__index  = index.Index()
     self.__first3 = [i % (3**3) for i in range(6561)] # 3進8bitから下位3bitを得る
@@ -44,7 +35,7 @@ class Board:
     self.__first7 = [i % (3**7) for i in range(6561)]
     self.__last3  = self.__initLast3()                # 3進8bitから上位3bitを得る
     self.__last5  = self.__initLast5()
-    self.put = [  self.putAt0,self.putAt1,self.putAt2,self.putAt3,self.putAt4,self.putAt5,self.putAt6,self.putAt7,
+    self.putl = [  self.putAt0,self.putAt1,self.putAt2,self.putAt3,self.putAt4,self.putAt5,self.putAt6,self.putAt7,
                   self.putAt8,self.putAt9,self.putAt10,self.putAt11,self.putAt12,self.putAt13,self.putAt14,self.putAt15,
                   self.putAt16,self.putAt17,self.putAt18,self.putAt19,self.putAt20,self.putAt21,self.putAt22,self.putAt23,
                   self.putAt24,self.putAt25,self.putAt26,self.putAt27,self.putAt28,self.putAt29,self.putAt30,self.putAt31,
@@ -52,7 +43,7 @@ class Board:
                   self.putAt40,self.putAt41,self.putAt42,self.putAt43,self.putAt44,self.putAt45,self.putAt46,self.putAt47,
                   self.putAt48,self.putAt49,self.putAt50,self.putAt51,self.putAt52,self.putAt53,self.putAt54,self.putAt55,
                   self.putAt56,self.putAt57,self.putAt58,self.putAt59,self.putAt60,self.putAt61,self.putAt62,self.putAt63]
-    self.placeable = [  self.placeable0,self.placeable1,self.placeable2,self.placeable3,self.placeable4,self.placeable5,self.placeable6,self.placeable7,
+    self.placeablel = [  self.placeable0,self.placeable1,self.placeable2,self.placeable3,self.placeable4,self.placeable5,self.placeable6,self.placeable7,
                         self.placeable8,self.placeable9,self.placeable10,self.placeable11,self.placeable12,self.placeable13,self.placeable14,self.placeable15,
                         self.placeable16,self.placeable17,self.placeable18,self.placeable19,self.placeable20,self.placeable21,self.placeable22,self.placeable23,
                         self.placeable24,self.placeable25,self.placeable26,self.placeable27,self.placeable28,self.placeable29,self.placeable30,self.placeable31,
@@ -60,7 +51,7 @@ class Board:
                         self.placeable40,self.placeable41,self.placeable42,self.placeable43,self.placeable44,self.placeable45,self.placeable46,self.placeable47,
                         self.placeable48,self.placeable49,self.placeable50,self.placeable51,self.placeable52,self.placeable53,self.placeable54,self.placeable55,
                         self.placeable56,self.placeable57,self.placeable58,self.placeable59,self.placeable60,self.placeable61,self.placeable62,self.placeable63]    
-    self.takes = [  self.takes0,self.takes1,self.takes2,self.takes3,self.takes4,self.takes5,self.takes6,self.takes7,
+    self.takesl = [  self.takes0,self.takes1,self.takes2,self.takes3,self.takes4,self.takes5,self.takes6,self.takes7,
                     self.takes8,self.takes9,self.takes10,self.takes11,self.takes12,self.takes13,self.takes14,self.takes15,
                     self.takes16,self.takes17,self.takes18,self.takes19,self.takes20,self.takes21,self.takes22,self.takes23,
                     self.takes24,self.takes25,self.takes26,self.takes27,self.takes28,self.takes29,self.takes30,self.takes31,
@@ -73,10 +64,20 @@ class Board:
   def init(self):
     self.board            = list(self.INITIAL_STATE)
     self.emptyCells       = list(self.INITIAL_EMPCELL)
-    self.emptyFlag        = list(self.INITIAL_EMPFLAG)
     self.__prevState      = None   # Undo用
     self.__prevEmptyCells = None
-    self.__prevEmptyFlag  = None
+
+  def put(self, pos, color):
+    self.putl[pos](color)
+
+  def placeable(self, pos, color):
+    return self.placeablel[pos](color)
+
+  def takes(self, pos, color):
+    return self.takesl[pos](color)
+
+  def getCells(self):
+    return [self.at(pos%8,pos/8) for pos in range(64)]
     
   def at(self, x, y):
     return (self.board[y] % (3 ** (x + 1))) / (3 ** x)
@@ -87,7 +88,7 @@ class Board:
         xy = (x*othello.Config.CELL_WIDTH, y*othello.Config.CELL_WIDTH)
         state = self.at(x, y)
         if state == othello.Config.EMPTY:
-          if self.placeable[x+y*8](turn):
+          if self.placeablel[x+y*8](turn):
             self.__screen.blit(self.placeable_img, self.empty_rect.move(xy))
           else:
             self.__screen.blit(self.empty_img, self.empty_rect.move(xy))
@@ -114,45 +115,27 @@ class Board:
     print "BLACK:", counter[othello.Config.BLACK], " WHITE:", counter[othello.Config.WHITE]
 
   def placeableCells(self, color):
-    return [pos for pos in self.emptyCells if self.placeable[pos](color) ]
-    #return [pos for pos in xrange(64) if self.emptyFlag[pos] and self.placeable[pos](color) ]
+    return [pos for pos in self.emptyCells if self.placeablel[pos](color) ]
   
   # <概要> 重み付けされた着手可能数を返す
   def placeableCellsNum(self, color):
     res = 0
     for pos in self.emptyCells:
-      if self.placeable[pos](color):
-    #for pos in xrange(64):
-    #  if self.emptyFlag[pos] and self.placeable[pos](color):
+      if self.placeablel[pos](color):
         res += 1
-    if self.placeable[0](color):
+    if self.placeablel[0](color):
       res += 1
-    if self.placeable[7](color):
+    if self.placeablel[7](color):
       res += 1
-    if self.placeable[56](color):
+    if self.placeablel[56](color):
       res += 1
-    if self.placeable[63](color):
+    if self.placeablel[63](color):
       res += 1
     return res
 
     # <概要> 空マスリストの更新
   def modifyEmptyCells(self, pos):
     self.emptyCells.remove(pos)
-    #self.emptyCells.pop(self.__biSearch(pos))
-    #self.emptyFlag[pos] = False
-
-  def __biSearch(self, pos):
-    l = 0
-    r = len(self.emptyCells)
-    m = r / 2
-    while l <= r:
-      if self.emptyCells[m] == pos:
-        return m
-      if self.emptyCells[m] > pos:
-        r = m - 1
-      else:
-        l = m + 1
-      m = (l + r) / 2
 
   # ==================== 評価関数関連 ====================
   # <概要> 位置ベース(othello.Config.WEIGHTS)の評価値を返す.
@@ -222,12 +205,10 @@ class Board:
   def storeState(self):
     self.__prevState      = self.getState()
     self.__prevEmptyCells = list(self.emptyCells)
-    self.__prevEmptyFlag  = list(self.emptyFlag)
 
   def loadState(self):
     self.restoreState(self.__prevState)
     self.emptyCells = self.__prevEmptyCells
-    self.emptyFlag  = self.__prevEmptyFlag
   # ==================================================
 
   def __initLast5(self):
