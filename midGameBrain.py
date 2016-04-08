@@ -232,7 +232,7 @@ class MidGameBrain():
   #        具体的には1手先の盤面を評価関数で評価した値を比較している.
   def __moveOrdering(self, cellPosList, color, turnCounter):
     stateCpy = self.board.getState()  # 盤面コピー
-    values = [0] * len(cellPosList)
+    values = [0.0] * len(cellPosList)
     for i, pos in enumerate(cellPosList):
       self.board.put(pos,color)
       values[i] = self.__evaluateLeaf(color, turnCounter+1)
@@ -245,7 +245,7 @@ class MidGameBrain():
   #        通常のやつと同じ
   def __moveOrderingFirst(self, cellPosList, color, turnCounter):
     stateCpy = self.board.getState()  # 盤面コピー
-    values = [0] * len(cellPosList)
+    values = [0.0] * len(cellPosList)
     for i, pos in enumerate(cellPosList):
       self.board.put(pos,color)
       values[i] = self.__evaluateLeaf(color, turnCounter+1)

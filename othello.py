@@ -26,8 +26,8 @@ class Config:
   POW3          = [3 ** i for i in range(8)]
 
   AI_COLOR      = BLACK
-  MID_HEIGHT    = 5       # 中盤ゲーム木の高さ
-  LAST_PHASE    = 46      # 終盤読み切りを開始するタイミング
+  MID_HEIGHT    = 7       # 中盤ゲーム木の高さ
+  LAST_PHASE    = 44      # 終盤読み切りを開始するタイミング
   TABLE_SIZE    = 65537   # 置換表のハッシュテーブルサイズ
   WEIGHTS       = [ [ 30, -12,  0, -1, -1,  0, -12,  30],
                     [-12, -15, -3, -3, -3, -3, -15, -12],
@@ -37,7 +37,7 @@ class Config:
                     [  0,  -3,  0, -1, -1,  0,  -3,   0],
                     [-12, -15, -3, -3, -3, -3, -15, -12],
                     [ 30, -12,  0, -1, -1,  0, -12,  30] ]
-  BITBOARD      = True    # 終盤探索でBitBoardを使用するか否か
+  BITBOARD      = False    # 終盤探索でBitBoardを使用するか否か
 
 class You():
   def __init__(self, board, color, openingBook):

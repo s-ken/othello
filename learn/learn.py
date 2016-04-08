@@ -17,8 +17,8 @@ class Learner:
   STEPSZ      = 0.01 # 重み更新のステップサイズ係数
   RANDOMBEGIN = 8    # ゲーム最初のランダム手数
   RANDOMMOVE  = 0.01 # AIがランダムにコマを打つ確率
-  MIDTREEHEIGHT = 3
-  LASTPHASE     = 54
+  MIDTREEHEIGHT = 4
+  LASTPHASE     = 50
 
   def __init__(self):
     self.__weight    = self.__loadWeights() # Logistelloパターン重み
@@ -173,9 +173,9 @@ def main():
     if not (i % 100): # 100試合毎に重みを保存
       print "game:", i, " ************"
       learner.saveWeight()
-      print "B:", float(learner.winB) / (learner.winW + learner.draw)
-      print "W:", float(learner.winW) / (learner.winB + learner.draw)
-      print "D:", float(learner.draw) / (learner.winW + learner.winB)
+      print "B:", float(learner.winB) / i
+      print "W:", float(learner.winW) / i
+      print "D:", float(learner.draw) / i
       toc = time.time()
       print ("time: {0}".format(toc - tic)+"[sec]")
       tic = toc
